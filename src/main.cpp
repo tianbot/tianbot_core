@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            ROS_ERROR("Unsupportted type: %s, retry %d...", type, retry);
+            ROS_ERROR("Unsupportted type: %s, retry %d...", type.c_str(), retry);
         }
         ros::Duration(1).sleep();
     }
@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    ROS_INFO("Product type: %s", type);
+    ROS_INFO("Product type: %s", type.c_str());
 
     ros::Rate loop_rate(10);
     while (ros::ok())
