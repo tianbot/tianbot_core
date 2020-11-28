@@ -1,2 +1,2 @@
 # tianbot_core
-ROS node for embedded control
+ROS node for embedded controller
