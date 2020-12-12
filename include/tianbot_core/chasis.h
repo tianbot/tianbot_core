@@ -22,7 +22,7 @@ using namespace boost;
 class TianbotChasis : public TianbotCore {
 public:
     TianbotChasis(ros::NodeHandle *nh);
-    //~Tianboard();
+
 private:
     ros::Publisher odom_pub_;
     ros::Publisher uwb_pub_;
@@ -30,10 +30,8 @@ private:
     ros::Subscriber cmd_vel_sub_;
     geometry_msgs::TransformStamped odom_tf_;
     tf::TransformBroadcaster tf_broadcaster_;
-    ros::NodeHandle nh_;
     std::string base_frame_;
     std::string odom_frame_;
-    void velocityCallback(const geometry_msgs::Twist::ConstPtr &msg);
     virtual void tianbotDataProc(unsigned char *buf, int len);
 };
 

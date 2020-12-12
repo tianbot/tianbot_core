@@ -84,60 +84,14 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
     }
 }
 
-void TianbotChasis::velocityCallback(const geometry_msgs::Twist::ConstPtr &msg)
-{
-    uint16_t len;
-    vector<uint8_t> buf;
-
-    uint8_t bcc = 0;
-    struct twist twist;
-    int i;
-    uint8_t *out = (uint8_t *)&twist;
-    twist.linear.x = msg->linear.x;
-    twist.linear.y = msg->linear.y;
-    twist.linear.z = msg->linear.z;
-    twist.angular.x = msg->angular.x;
-    twist.angular.y = msg->angular.y;
-    twist.angular.z = msg->angular.z;
-
-    buf.push_back(PROTOCOL_HEAD & 0xFF);
-    buf.push_back((PROTOCOL_HEAD >> 8) & 0xFF);
-
-    len = sizeof(struct twist) + 2;
-
-    buf.push_back(len & 0xFF);
-    buf.push_back((len >> 8) & 0xFF);
-
-    buf.push_back(PACK_TYPE_CMD_VEL & 0xFF);
-    buf.push_back((PACK_TYPE_CMD_VEL >> 8) & 0xFF);
-
-    for (i = 0; i < sizeof(struct twist); i++)
-    {
-        buf.push_back(out[i]);
-    }
-
-    for (i = 4; i < buf.size(); i++)
-    {
-        bcc ^= buf[i];
-    }
-
-    buf.push_back(bcc);
-
-    serial_.send(&buf[0], buf.size());
-    //heart_timer_.stop();
-    //heart_timer_.start();
-}
-
 TianbotChasis::TianbotChasis(ros::NodeHandle *nh) : TianbotCore(nh)
 {
-    std::string param_serial_port;
-
     nh_.param<std::string>("base_frame", base_frame_, DEFAULT_BASE_FRAME);
     nh_.param<std::string>("odom_frame", odom_frame_, DEFAULT_ODOM_FRAME);
     odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odom", 1);
     imu_pub_ = nh_.advertise<sensor_msgs::Imu>("imu", 1);
     uwb_pub_ = nh_.advertise<geometry_msgs::Pose2D>("uwb", 1);
-    cmd_vel_sub_ = nh_.subscribe("cmd_vel", 1, &TianbotChasis::velocityCallback, this);
+
     odom_tf_.header.frame_id = odom_frame_;
     odom_tf_.child_frame_id = base_frame_;
 }

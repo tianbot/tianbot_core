@@ -124,11 +124,6 @@ void TianbotCore::serialDataProc(uint8_t *data, unsigned int data_len)
     }
 }
 
-string TianbotCore::getType(void)
-{
-
-}
-
 void TianbotCore::communicationErrorCallback(const ros::TimerEvent &)
 {
     ROS_ERROR_THROTTLE(5, "Communication with base error");
