@@ -79,6 +79,15 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
         }
         break;
 
+    case PACK_TYPE_DEBUG_RESPONSE:
+        {
+            std_msgs::String debug_msg;
+            p->data[p->len-2] = '\0';
+            debug_msg.data = (char *)(p->data);
+            debug_pub_.publish(debug_msg);
+        }
+        break;
+
     default:
         break;
     }

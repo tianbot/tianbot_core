@@ -11,6 +11,7 @@
 #include "boost/function.hpp"
 #include <tf/transform_broadcaster.h>
 #include "sensor_msgs/Imu.h"
+#include "std_msgs/String.h"
 #include "core.h"
 
 #define DEFAULT_BASE_FRAME "base_link"

@@ -1,6 +1,7 @@
 #include "core.h"
 #include "protocol.h"
 #include <vector>
+#include <stdint.h>
 
 void TianbotCore::serialDataProc(uint8_t *data, unsigned int data_len)
 {
@@ -138,17 +139,27 @@ void TianbotCore::heartCallback(const ros::TimerEvent &)
     serial_.send(&buf[0], buf.size());
 }
 
+void TianbotCore::debugcmdCallback(const std_msgs::String::ConstPtr &msg)
+{
+    vector<uint8_t> buf;
+    buildCmd(buf, PACK_TYPE_DEBUG, (uint8_t *)msg->data.c_str(), msg->data.length());
+    serial_.send(&buf[0], buf.size());
+}
+
 TianbotCore::TianbotCore(ros::NodeHandle *nh) : nh_(*nh)
 {
     std::string param_serial_port;
-
+    int32_t param_serial_baudrate;
     nh_.param<std::string>("serial_port", param_serial_port, DEFAULT_SERIAL_DEVICE);
+    nh_.param("serial_baudrate", param_serial_baudrate, DEFAULT_SERIAL_BAUDRATE);
+    debug_pub_ = nh_.advertise<std_msgs::String>("debug_result", 1);
+    debug_sub_ = nh_.subscribe("debug_cmd", 1, &TianbotCore::debugcmdCallback, this);
     heartbeat_timer_ = nh_.createTimer(ros::Duration(0.2), &TianbotCore::heartCallback, this);
     heartbeat_timer_.start();
     communication_timer_ = nh_.createTimer(ros::Duration(0.2), &TianbotCore::communicationErrorCallback, this);
     communication_timer_.start();
 
-    if (serial_.open(param_serial_port.c_str(), 460800, 0, 8, 1, 'N',
+    if (serial_.open(param_serial_port.c_str(), param_serial_baudrate, 0, 8, 1, 'N',
                      boost::bind(&TianbotCore::serialDataProc, this, _1, _2)) != true)
     {
         exit(-1);
