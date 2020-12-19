@@ -58,6 +58,7 @@ void *Serial::serial_recv(void *p)
     uint8_t recvbuff[1024];
     int recvlen = 0;
     Serial *pThis = (Serial *)p;
+    usleep(10000);
     while (pThis->running_)
     {
         memset(recvbuff, 0, sizeof(recvbuff));
@@ -77,8 +78,8 @@ bool Serial::config(int speed, int flow_ctrl, int databits, int stopbits,
 {
     int i;
     int status;
-    int speed_arr[] = {B115200, B57600, B38400, B19200, B9600};
-    int name_arr[] = {115200, 57600, 38400, 19200, 9600};
+    int speed_arr[] = {B460800, B230400, B115200, B57600, B38400, B19200, B9600};
+    int name_arr[] = {460800, 230400, 115200, 57600, 38400, 19200, 9600};
 
     struct termios options;
 
