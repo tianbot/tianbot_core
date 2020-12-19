@@ -151,7 +151,7 @@ TianbotCore::TianbotCore(ros::NodeHandle *nh) : nh_(*nh)
     std::string param_serial_port;
     int32_t param_serial_baudrate;
     nh_.param<std::string>("serial_port", param_serial_port, DEFAULT_SERIAL_DEVICE);
-    nh_.param("serial_baudrate", param_serial_baudrate, DEFAULT_SERIAL_BAUDRATE);
+    nh_.param<int>("serial_baudrate", param_serial_baudrate, DEFAULT_SERIAL_BAUDRATE);
     debug_pub_ = nh_.advertise<std_msgs::String>("debug_result", 1);
     debug_sub_ = nh_.subscribe("debug_cmd", 1, &TianbotCore::debugcmdCallback, this);
     heartbeat_timer_ = nh_.createTimer(ros::Duration(0.2), &TianbotCore::heartCallback, this);
