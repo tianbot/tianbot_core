@@ -18,7 +18,7 @@ def param_set_client(param):
                 print("Service call failed: %s"%e)
                 sys.exit(1)
             else:
-                printf("retry ...")
+                print("retry ...")
 
 def param_get_client():
     rospy.wait_for_service('/tianbot_core/debug_cmd_srv')
@@ -34,7 +34,7 @@ def param_get_client():
                 print("Service call failed: %s"%e)
                 sys.exit(1)
             else:
-                printf("retry ...")
+                print("retry ...")
 
 def param_save_client():
     rospy.wait_for_service('/tianbot_core/debug_cmd_srv')
@@ -50,7 +50,7 @@ def param_save_client():
                 print("Service call failed: %s"%e)
                 sys.exit(1)
             else:
-                printf("retry ...")
+                print("retry ...")
 
 def reset_client():
     rospy.wait_for_service('/tianbot_core/debug_cmd_srv')
@@ -76,6 +76,8 @@ if __name__ == "__main__":
 
     with open(filename, 'r' ) as file:
         for line in file.readlines():
+            if line.strip() == '':
+                continue
             print("param set " + line.strip())
             print(param_set_client(line.strip()))
 
