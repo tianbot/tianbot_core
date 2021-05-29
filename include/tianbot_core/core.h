@@ -8,7 +8,7 @@
 #include "string.h"
 #include "std_msgs/String.h"
 #include "tianbot_core/DebugCmd.h"
-
+#include <string>
 #define DEFAULT_SERIAL_DEVICE "/dev/ttyUSB0"
 #define DEFAULT_SERIAL_BAUDRATE 460800
 #define DEFAULT_TYPE "omni"
@@ -20,7 +20,6 @@ class TianbotCore
 {
 public:
     Serial serial_;
-    string type;
     ros::Publisher debug_result_pub_;
     ros::Subscriber debug_cmd_sub_;
     ros::NodeHandle nh_;
@@ -42,6 +41,7 @@ private:
     void communicationErrorCallback(const ros::TimerEvent &);
     void debugCmdCallback(const std_msgs::String::ConstPtr &msg);
     bool debugCmdSrv(tianbot_core::DebugCmd::Request &req,  tianbot_core::DebugCmd::Response &res);
+    void checkDevType(void);
     ros::ServiceServer param_set_;
 };
 

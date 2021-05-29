@@ -170,12 +170,12 @@ bool TianbotCore::debugCmdSrv(tianbot_core::DebugCmd::Request &req, tianbot_core
     uint32_t count = 200;
     buildCmd(buf, PACK_TYPE_DEBUG, (uint8_t *)req.cmd.c_str(), req.cmd.length());
     serial_.send(&buf[0], buf.size());
-    if(req.cmd == "reset")
+    if (req.cmd == "reset")
     {
         res.result = "reset";
         return true;
     }
-    else if(req.cmd == "param save")
+    else if (req.cmd == "param save")
     {
         count = 2000;
     }
@@ -183,7 +183,7 @@ bool TianbotCore::debugCmdSrv(tianbot_core::DebugCmd::Request &req, tianbot_core
     {
         ros::Duration(0.001).sleep();
     }
-    if(debugResultFlag_)
+    if (debugResultFlag_)
     {
         res.result = debugResultStr_;
         return true;
@@ -191,6 +191,54 @@ bool TianbotCore::debugCmdSrv(tianbot_core::DebugCmd::Request &req, tianbot_core
     else
     {
         return false;
+    }
+}
+
+void TianbotCore::checkDevType(void)
+{
+    string type_keyword_list[] = {"base_type", "end"};
+    string type;
+    ros::ServiceClient client = nh_.serviceClient<tianbot_core::DebugCmd>("debug_cmd_srv");
+
+    tianbot_core::DebugCmd cmd;
+    cmd.request.cmd = "param get";
+
+    if (client.call(cmd))
+    {
+        string dev_type;
+        string param = cmd.response.result;
+        string::size_type start;
+        string::size_type end;
+        for (int i = 0; type_keyword_list[i] != "end"; i++)
+        {
+            start = param.find(type_keyword_list[i]);
+            if (start != param.npos)
+            {
+                start += type_keyword_list[i].length();
+                end = param.find("\r\n", start);
+                if (end == param.npos)
+                {
+                    end = param.length();
+                }
+                dev_type = param.substr(start, end - start);
+                ROS_INFO("Get device type [%s]", dev_type.c_str());
+                nh_.param<std::string>("type", type, DEFAULT_TYPE);
+                if(type == dev_type)
+                {
+                    ROS_INFO("Device type match");
+                }
+                else{
+                    ROS_INFO("Device type mismatch, set [%s] get [%s]", type.c_str(), dev_type.c_str());
+                }
+                return;
+            }
+        }
+        ROS_ERROR("No valid device type found");
+    }
+    else
+    {
+        ROS_ERROR("Failed to call debug cmd service");
+        return;
     }
 }
 
@@ -216,4 +264,5 @@ TianbotCore::TianbotCore(ros::NodeHandle *nh) : nh_(*nh)
     ROS_INFO("Device %s connect successfully", param_serial_port.c_str());
     heartbeat_timer_.start();
     communication_timer_.start();
+    checkDevType();
 }
