@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
     with open(filename, 'r' ) as file:
         for line in file.readlines():
-            if line.strip() == '':
+            if line.strip() == '' or line.strip().startswith('#'):
                 continue
             print("param set " + line.strip())
             print(param_set_client(line.strip()))
