@@ -5,6 +5,7 @@
 #include "stdint.h"
 #include "omni.h"
 #include "ackermann.h"
+#include "differential.h"
 
 using namespace std;
 
@@ -25,6 +26,10 @@ int main(int argc, char *argv[])
     else if (type == "ackermann")
     {
         core = new TianbotAckermann(&nh);
+    }
+    else if (type == "diff")
+    {
+        core = new TianbotDifferential(&nh);
     }
     else if (type == "arm")
     {
