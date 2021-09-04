@@ -1,15 +1,15 @@
 #描述
-desc tom08c
+desc tom06q2co
 #类型 mecanum omni diff
 base_type diff
 #轮距/2 单位m
-base_a 0.207500
+base_a 0.152500
 #轴距/2 单位m
-base_b 0.189000
+base_b 0.140000
 #轮子半径
-wheel_r 0.075000
+wheel_r 0.050000
 #电机减速比 3508 19.2 2006 36
-motor_reduction 19.200000
+motor_reduction 36.000000
 #最大角速度 单位弧度
 max_w 3.141593
 #最大线速度 单位 m/s
