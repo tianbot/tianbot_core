@@ -227,7 +227,8 @@ void TianbotCore::checkDevType(void)
                 {
                     ROS_INFO("Device type match");
                 }
-                else{
+                else
+                {
                     ROS_INFO("Device type mismatch, set [%s] get [%s]", type.c_str(), dev_type.c_str());
                 }
                 return;
@@ -264,5 +265,4 @@ TianbotCore::TianbotCore(ros::NodeHandle *nh) : nh_(*nh)
     ROS_INFO("Device %s connect successfully", param_serial_port.c_str());
     heartbeat_timer_.start();
     communication_timer_.start();
-    checkDevType();
 }

@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
     else if (type == "arm")
     {
     }
-
+    core->checkDevType();
     ros::Rate loop_rate(10);
     while (ros::ok())
     {

@@ -29,7 +29,7 @@ public:
     string debugResultStr_;
 
     TianbotCore(ros::NodeHandle *nh);
-
+    void checkDevType(void);
     virtual void tianbotDataProc(unsigned char *buf, int len) = 0;
 
 private:
@@ -41,7 +41,6 @@ private:
     void communicationErrorCallback(const ros::TimerEvent &);
     void debugCmdCallback(const std_msgs::String::ConstPtr &msg);
     bool debugCmdSrv(tianbot_core::DebugCmd::Request &req,  tianbot_core::DebugCmd::Response &res);
-    void checkDevType(void);
     ros::ServiceServer param_set_;
 };
 
