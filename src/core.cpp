@@ -208,7 +208,7 @@ void TianbotCore::checkDevType(void)
     uint32_t count;
     uint32_t retry;
 
-    for (retry = 0; retry < 3; retry++)
+    for (retry = 0; retry < 5; retry++)
     {
         debugResultFlag_ = false;
         count = 300;
@@ -227,10 +227,11 @@ void TianbotCore::checkDevType(void)
         }
         else
         {
-            ROS_INFO("Get Device type failed, retry ...");
+            ROS_INFO("Get Device type failed, retry after 1s ...");
+            ros::Duration(1).sleep();
         }
     }
-    if (retry == 3)
+    if (retry == 5)
     {
         ROS_ERROR("No valid device type found");
         return;
