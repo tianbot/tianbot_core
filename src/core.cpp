@@ -196,7 +196,7 @@ bool TianbotCore::debugCmdSrv(tianbot_core::DebugCmd::Request &req, tianbot_core
 
 void TianbotCore::checkDevType(void)
 {
-    string type_keyword_list[] = {"base_type", "end"};
+    string type_keyword_list[] = {"base_type: ", "end"};
     string type;
     string dev_param;
     string dev_type;
@@ -205,26 +205,36 @@ void TianbotCore::checkDevType(void)
 
     string cmd = "param get";
     vector<uint8_t> buf;
-    debugResultFlag_ = false;
-    uint32_t count = 200;
+    uint32_t count;
+    uint32_t retry;
 
-    buildCmd(buf, PACK_TYPE_DEBUG, (uint8_t *)cmd.c_str(), cmd.length());
-    serial_.send(&buf[0], buf.size());
+    for (retry = 0; retry < 3; retry++)
+    {
+        debugResultFlag_ = false;
+        count = 300;
+        buf.clear();
+        buildCmd(buf, PACK_TYPE_DEBUG, (uint8_t *)cmd.c_str(), cmd.length());
+        serial_.send(&buf[0], buf.size());
 
-    while (count-- && !debugResultFlag_)
-    {
-        ros::Duration(0.001).sleep();
+        while (count-- && !debugResultFlag_)
+        {
+            ros::Duration(0.001).sleep();
+        }
+        if (debugResultFlag_)
+        {
+            dev_param = debugResultStr_;
+            break;
+        }
+        else
+        {
+            ROS_INFO("Get Device type failed, retry ...");
+        }
     }
-    if (debugResultFlag_)
+    if (retry == 3)
     {
-        dev_param = debugResultStr_;
-    }
-    else
-    {
-        ROS_ERROR("param get failed!");
+        ROS_ERROR("No valid device type found");
         return;
     }
-
     for (int i = 0; type_keyword_list[i] != "end"; i++)
     {
         start = dev_param.find(type_keyword_list[i]);
