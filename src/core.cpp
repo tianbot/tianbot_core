@@ -239,13 +239,17 @@ void TianbotCore::checkDevType(void)
             dev_type = dev_param.substr(start, end - start);
             ROS_INFO("Get device type [%s]", dev_type.c_str());
             nh_.param<std::string>("type", type, DEFAULT_TYPE);
+            if (dev_type == "omni" || dev_type == "mecanum")
+            {
+                dev_type = "omni";
+            }
             if (type == dev_type)
             {
                 ROS_INFO("Device type match");
             }
             else
             {
-                ROS_INFO("Device type mismatch, set [%s] get [%s]", type.c_str(), dev_type.c_str());
+                ROS_ERROR("Device type mismatch, set [%s] get [%s]", type.c_str(), dev_type.c_str());
             }
             return;
         }
