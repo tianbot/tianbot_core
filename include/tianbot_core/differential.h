@@ -2,7 +2,7 @@
 #define __DIFFERENTIAL_H__
 
 #include "ros/ros.h"
-#include "chasis.h"
+#include "chassis.h"
 #include "geometry_msgs/Twist.h"
 
 class TianbotDifferential : public TianbotChasis{

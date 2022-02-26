@@ -2,7 +2,7 @@
 #define __ACKERMANN_H__
 
 #include "ros/ros.h"
-#include "chasis.h"
+#include "chassis.h"
 #include "ackermann_msgs/AckermannDrive.h"
 
 class TianbotAckermann : public TianbotChasis
