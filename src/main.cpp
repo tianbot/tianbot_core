@@ -12,12 +12,15 @@ using namespace std;
 int main(int argc, char *argv[])
 {
     string type;
+    bool type_verify;
+
     TianbotCore *core;
 
     ros::init(argc, argv, "tianbot_core");
     ros::NodeHandle nh("~");
 
     nh.param<std::string>("type", type, DEFAULT_TYPE);
+    nh.param<bool>("type_verify", type_verify, DEFAULT_TYPE_VERIFY);
 
     if (type == "omni")
     {
@@ -34,7 +37,10 @@ int main(int argc, char *argv[])
     else if (type == "arm")
     {
     }
-    core->checkDevType();
+    if (type_verify)
+    {
+        core->checkDevType();
+    }
     ros::Rate loop_rate(10);
     while (ros::ok())
     {

@@ -30,14 +30,16 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
             odom_msg.twist.twist.angular.z = pOdom->twist.angular.z;
             //publish the message
             odom_pub_.publish(odom_msg);
+            if (publish_tf_)
+            {
+                odom_tf_.header.stamp = current_time;
+                odom_tf_.transform.translation.x = pOdom->pose.point.x;
+                odom_tf_.transform.translation.y = pOdom->pose.point.y;
+                odom_tf_.transform.translation.z = pOdom->pose.point.z;
 
-            odom_tf_.header.stamp = current_time;
-            odom_tf_.transform.translation.x = pOdom->pose.point.x;
-            odom_tf_.transform.translation.y = pOdom->pose.point.y;
-            odom_tf_.transform.translation.z = pOdom->pose.point.z;
-
-            odom_tf_.transform.rotation = odom_msg.pose.pose.orientation;
-            tf_broadcaster_.sendTransform(odom_tf_);
+                odom_tf_.transform.rotation = odom_msg.pose.pose.orientation;
+                tf_broadcaster_.sendTransform(odom_tf_);
+            }
         }
         break;
 
@@ -99,6 +101,7 @@ TianbotChasis::TianbotChasis(ros::NodeHandle *nh) : TianbotCore(nh)
 {
     nh_.param<std::string>("base_frame", base_frame_, DEFAULT_BASE_FRAME);
     nh_.param<std::string>("odom_frame", odom_frame_, DEFAULT_ODOM_FRAME);
+    nh_.param<bool>("publish_tf", publish_tf_, DEFAULT_PUBLISH_TF);
     odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odom", 1);
     imu_pub_ = nh_.advertise<sensor_msgs::Imu>("imu", 1);
     uwb_pub_ = nh_.advertise<geometry_msgs::Pose2D>("uwb", 1);

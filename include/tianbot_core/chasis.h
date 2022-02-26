@@ -16,6 +16,7 @@
 
 #define DEFAULT_BASE_FRAME "base_link"
 #define DEFAULT_ODOM_FRAME "odom"
+#define DEFAULT_PUBLISH_TF true
 
 using namespace std;
 using namespace boost;
@@ -31,6 +32,7 @@ private:
     ros::Subscriber cmd_vel_sub_;
     geometry_msgs::TransformStamped odom_tf_;
     tf::TransformBroadcaster tf_broadcaster_;
+    bool publish_tf_;
     std::string base_frame_;
     std::string odom_frame_;
     virtual void tianbotDataProc(unsigned char *buf, int len);
