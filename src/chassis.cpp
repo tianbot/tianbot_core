@@ -13,7 +13,7 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
             struct odom *pOdom = (struct odom *)(p->data);
             ros::Time current_time = ros::Time::now();
             odom_msg.header.stamp = current_time;
-            odom_msg.header.frame_id = odom_frame_;
+            odom_msg.header.frame_id = nh_.getNamespace() + odom_frame_;
 
             odom_msg.pose.pose.position.x = pOdom->pose.point.x;
             odom_msg.pose.pose.position.y = pOdom->pose.point.y;
@@ -66,7 +66,7 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
 
             ros::Time current_time = ros::Time::now();
             imu_msg.header.stamp = current_time;
-            imu_msg.header.frame_id = "imu";
+            imu_msg.header.frame_id = nh_.getNamespace() + imu_frame_;
             imu_msg.orientation.x = pImu->quat.x;
             imu_msg.orientation.y = pImu->quat.y;
             imu_msg.orientation.z = pImu->quat.z;
@@ -101,11 +101,14 @@ TianbotChasis::TianbotChasis(ros::NodeHandle *nh) : TianbotCore(nh)
 {
     nh_.param<std::string>("base_frame", base_frame_, DEFAULT_BASE_FRAME);
     nh_.param<std::string>("odom_frame", odom_frame_, DEFAULT_ODOM_FRAME);
+    nh_.param<std::string>("imu_frame", imu_frame_, DEFAULT_IMU_FRAME);
+
     nh_.param<bool>("publish_tf", publish_tf_, DEFAULT_PUBLISH_TF);
+
     odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odom", 1);
     imu_pub_ = nh_.advertise<sensor_msgs::Imu>("imu", 1);
     uwb_pub_ = nh_.advertise<geometry_msgs::Pose2D>("uwb", 1);
 
-    odom_tf_.header.frame_id = odom_frame_;
-    odom_tf_.child_frame_id = base_frame_;
+    odom_tf_.header.frame_id = nh_.getNamespace() + odom_frame_;
+    odom_tf_.child_frame_id = nh_.getNamespace() + base_frame_;
 }

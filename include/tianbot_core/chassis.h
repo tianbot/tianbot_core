@@ -16,6 +16,8 @@
 
 #define DEFAULT_BASE_FRAME "base_link"
 #define DEFAULT_ODOM_FRAME "odom"
+#define DEFAULT_IMU_FRAME "imu_link"
+
 #define DEFAULT_PUBLISH_TF true
 
 using namespace std;
@@ -35,6 +37,7 @@ private:
     bool publish_tf_;
     std::string base_frame_;
     std::string odom_frame_;
+    std::string imu_frame_;
     virtual void tianbotDataProc(unsigned char *buf, int len);
 };
 
