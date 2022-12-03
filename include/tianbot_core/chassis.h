@@ -38,6 +38,7 @@ private:
     std::string base_frame_;
     std::string odom_frame_;
     std::string imu_frame_;
+    bool publisher_init_done;
     virtual void tianbotDataProc(unsigned char *buf, int len);
 };
 
