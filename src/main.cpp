@@ -1,11 +1,12 @@
-#include "ros/ros.h"
 #include "core.h"
+#include "ros/ros.h"
 
-#include "string.h"
-#include "stdint.h"
-#include "omni.h"
 #include "ackermann.h"
 #include "differential.h"
+#include "omni.h"
+#include "rover.h"
+#include "stdint.h"
+#include "string.h"
 
 using namespace std;
 
@@ -33,6 +34,10 @@ int main(int argc, char *argv[])
     else if (type == "diff")
     {
         core = new TianbotDifferential(&nh);
+    }
+    else if (type == "rover")
+    {
+        core = new TianbotRover(&nh);
     }
     else if (type == "arm")
     {
