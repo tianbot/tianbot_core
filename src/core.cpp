@@ -1,7 +1,7 @@
 #include "core.h"
 #include "protocol.h"
-#include <vector>
 #include <stdint.h>
+#include <vector>
 
 void TianbotCore::serialDataProc(uint8_t *data, unsigned int data_len)
 {
@@ -90,8 +90,7 @@ void TianbotCore::serialDataProc(uint8_t *data, unsigned int data_len)
             }
             break;
 
-        case 7:
-        {
+        case 7: {
             int i;
             uint8_t bcc = 0;
             recv_msg.push_back(*p);
@@ -178,6 +177,10 @@ bool TianbotCore::debugCmdSrv(tianbot_core::DebugCmd::Request &req, tianbot_core
     else if (req.cmd == "param save")
     {
         count = 2000;
+    }
+    else if (req.cmd.find("set_") != req.cmd.npos) // adaptation for old racecar
+    {
+        count = 3000;
     }
     while (count-- && !debugResultFlag_)
     {
@@ -268,7 +271,8 @@ void TianbotCore::checkDevType(void)
     ROS_ERROR("No valid device type found");
 }
 
-TianbotCore::TianbotCore(ros::NodeHandle *nh) : nh_(*nh)
+TianbotCore::TianbotCore(ros::NodeHandle *nh)
+    : nh_(*nh)
 {
     std::string param_serial_port;
     int32_t param_serial_baudrate;
