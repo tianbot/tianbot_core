@@ -174,7 +174,7 @@ bool TianbotCore::debugCmdSrv(tianbot_core::DebugCmd::Request &req, tianbot_core
         res.result = "reset";
         return true;
     }
-    else if (req.cmd == "param save")
+    else if (req.cmd == "param save" || req.cmd == "param reset")
     {
         count = 2000;
     }
