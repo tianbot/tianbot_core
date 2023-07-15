@@ -20,4 +20,5 @@ void TianbotAckermann::ackermannCallback(const ackermann_msgs::AckermannDrive::C
 TianbotAckermann::TianbotAckermann(ros::NodeHandle *nh) : TianbotChasis(nh)
 {
     ackermann_sub_ = nh_.subscribe("ackermann_cmd", 5, &TianbotAckermann::ackermannCallback, this);
+    initDone_ = true;
 }

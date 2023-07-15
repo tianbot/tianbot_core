@@ -25,4 +25,5 @@ void TianbotDifferential::velocityCallback(const geometry_msgs::Twist::ConstPtr 
 TianbotDifferential::TianbotDifferential(ros::NodeHandle *nh) : TianbotChasis(nh)
 {
     cmd_vel_sub_ = nh_.subscribe("cmd_vel", 1, &TianbotDifferential::velocityCallback, this);
+    initDone_ = true;
 }

@@ -28,6 +28,7 @@ public:
 
     bool debugResultFlag_;
     string debugResultStr_;
+    bool initDone_;
 
     TianbotCore(ros::NodeHandle *nh);
     void checkDevType(void);

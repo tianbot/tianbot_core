@@ -25,4 +25,5 @@ void TianbotOmni::velocityCallback(const geometry_msgs::Twist::ConstPtr &msg)
 TianbotOmni::TianbotOmni(ros::NodeHandle *nh) : TianbotChasis(nh)
 {
     cmd_vel_sub_ = nh_.subscribe("cmd_vel", 1, &TianbotOmni::velocityCallback, this);
+    initDone_ = true;
 }

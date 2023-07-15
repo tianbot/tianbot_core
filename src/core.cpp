@@ -105,7 +105,10 @@ void TianbotCore::serialDataProc(uint8_t *data, unsigned int data_len)
 
             if (bcc == 0)
             {
-                tianbotDataProc(&recv_msg[0], recv_msg.size()); // process recv msg
+                if (initDone_)
+                {
+                    tianbotDataProc(&recv_msg[0], recv_msg.size()); // process recv msg
+                }
                 communication_timer_.stop();                    // restart timer for communication timeout
                 communication_timer_.start();
             }
@@ -271,8 +274,7 @@ void TianbotCore::checkDevType(void)
     ROS_ERROR("No valid device type found");
 }
 
-TianbotCore::TianbotCore(ros::NodeHandle *nh)
-    : nh_(*nh)
+TianbotCore::TianbotCore(ros::NodeHandle *nh) : nh_(*nh), initDone_(false)
 {
     std::string param_serial_port;
     int32_t param_serial_baudrate;
