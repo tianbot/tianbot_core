@@ -1,12 +1,12 @@
 #include "omni.h"
 #include "protocol.h"
 
-void TianbotOmni::velocityCallback(const geometry_msgs::Twist::ConstPtr &msg)
+void TianbotOmni::velocityCallback(const geometry_msgs::msg::Twist::ConstPtr &msg)
 {
     uint16_t len;
-    vector<uint8_t> buf;
+    std::vector<uint8_t> buf;
 
-    struct twist twist;
+    twist twist;
     uint8_t *out = (uint8_t *)&twist;
     twist.linear.x = msg->linear.x;
     twist.linear.y = msg->linear.y;
@@ -16,22 +16,27 @@ void TianbotOmni::velocityCallback(const geometry_msgs::Twist::ConstPtr &msg)
     twist.angular.z = msg->angular.z;
 
     buildCmd(buf, PACK_TYPE_CMD_VEL, (uint8_t *)&twist, sizeof(twist));
-    if (comm_inf_->send(&buf[0], buf.size()) != 0)
+        if (comm_inf_->send(&buf[0], buf.size()) != 0)
     {
         delete comm_inf_;
         comm_inf_ = NULL;
-        ROS_ERROR("communication failed, reopen the device");
-        heartbeat_timer_.stop();
-        communication_timer_.stop();
+        RCLCPP_ERROR(get_logger(), "communication failed, reopen the device");
+        heartbeat_timer_.cancel();
+        communication_timer_.cancel();
         open();
-        communication_timer_.start();
+        communication_timer_.reset();
     }
-    heartbeat_timer_.stop();
-    heartbeat_timer_.start();
+    heartbeat_timer_->cancel();
+    heartbeat_timer_->reset();
+
 }
 
-TianbotOmni::TianbotOmni(ros::NodeHandle *nh) : TianbotChasis(nh)
+
+TianbotOmni::TianbotOmni(const std::shared_ptr<rclcpp::Node> &node) : TianbotChasis(node)
 {
-    cmd_vel_sub_ = nh_.subscribe("cmd_vel", 1, &TianbotOmni::velocityCallback, this);
+
+    cmd_vel_sub_ = node->create_subscription<geometry_msgs::msg::Twist>(
+        "cmd_vel", 1, std::bind(&TianbotOmni::velocityCallback, this, std::placeholders::_1));
     initDone_ = true;
+
 }

@@ -1,7 +1,7 @@
 #include "differential.h"
 #include "protocol.h"
 
-void TianbotDifferential::velocityCallback(const geometry_msgs::Twist::ConstPtr &msg)
+void TianbotDifferential::velocityCallback(const geometry_msgs::msg::Twist::ConstPtr &msg)
 {
     uint16_t len;
     vector<uint8_t> buf;
@@ -20,19 +20,20 @@ void TianbotDifferential::velocityCallback(const geometry_msgs::Twist::ConstPtr 
     {
         delete comm_inf_;
         comm_inf_ = NULL;
-        ROS_ERROR("communication failed, reopen the device");
-        heartbeat_timer_.stop();
-        communication_timer_.stop();
+        RCLCPP_ERROR(get_logger(), "communication failed, reopen the device");
+        heartbeat_timer_.cancel();
+        communication_timer_.cancel();
         open();
-        communication_timer_.start();
+        communication_timer_.reset();
     }
 
-    heartbeat_timer_.stop();
-    heartbeat_timer_.start();
+    heartbeat_timer_->cancel();
+    heartbeat_timer_->reset();
 }
 
-TianbotDifferential::TianbotDifferential(ros::NodeHandle *nh) : TianbotChasis(nh)
+TianbotDifferential::TianbotDifferential(const std::shared_ptr<rclcpp::Node> &node) : TianbotChasis(node)
 {
-    cmd_vel_sub_ = nh_.subscribe("cmd_vel", 1, &TianbotDifferential::velocityCallback, this);
+    cmd_vel_sub_ = node->create_subscription<geometry_msgs::msg::Twist>(
+        "cmd_vel", 1, std::bind(&TianbotDifferential::velocityCallback, this, std::placeholders::_1));
     initDone_ = true;
 }

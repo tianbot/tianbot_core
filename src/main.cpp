@@ -1,54 +1,67 @@
 #include "core.h"
-#include "ros/ros.h"
+#include <rclcpp/rclcpp.hpp>
 
 #include "ackermann.h"
 #include "differential.h"
 #include "omni.h"
 #include "rover.h"
-#include "stdint.h"
-#include "string.h"
-
-using namespace std;
+#include "chassis.h"
 
 int main(int argc, char *argv[])
 {
-    string type;
+    rclcpp::init(argc, argv);
+    auto node = rclcpp::Node::make_shared("tianbot_core");
+
+    std::string type;
     bool type_verify;
 
-    TianbotCore *core;
+    TianbotCore *core = nullptr;
 
-    ros::init(argc, argv, "tianbot_core");
-    ros::NodeHandle nh("~");
+    node->declare_parameter("type",  rclcpp::PARAMETER_STRING);
+    node->declare_parameter("type_verify", rclcpp::PARAMETER_BOOL);
 
-    nh.param<std::string>("type", type, DEFAULT_TYPE);
-    nh.param<bool>("type_verify", type_verify, DEFAULT_TYPE_VERIFY);
+    if (!node->get_parameter("type", type)) {
+        type = DEFAULT_TYPE;
+    }
+    if (!node->get_parameter("type_verify", type_verify)) {
+        type_verify = DEFAULT_TYPE_VERIFY;
+    }
 
     if (type == "omni")
     {
-        core = new TianbotOmni(&nh);
+        core = new TianbotOmni(node);
     }
     else if (type == "ackermann")
     {
-        core = new TianbotAckermann(&nh);
+        core = new TianbotAckermann(node);
+        printf( "new TianbotAckermann(node) success/n");
     }
     else if (type == "diff")
     {
-        core = new TianbotDifferential(&nh);
+        core = new TianbotDifferential(node);
     }
     else if (type == "rover")
     {
-        core = new TianbotRover(&nh);
+        core = new TianbotRover(node);
     }
     else if (type == "arm")
     {
+        // Add arm initialization here
     }
+
     if (type_verify)
     {
         core->checkDevType();
     }
-        
-    ros::spin();
+
+    rclcpp::Rate loop_rate(10);
+    while (rclcpp::ok())
+    {
+        rclcpp::spin_some(node);
+        loop_rate.sleep();
+    }
 
     delete core;
+    rclcpp::shutdown();
     return 0;
 }

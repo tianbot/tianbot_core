@@ -1,16 +1,16 @@
 #ifndef __OMNI_H__
 #define __OMNI_H__
 
-#include "ros/ros.h"
+#include <rclcpp/rclcpp.hpp>
 #include "chassis.h"
-#include "geometry_msgs/Twist.h"
+#include "geometry_msgs/msg/twist.hpp"
 
-class TianbotOmni : public TianbotChasis{
+class TianbotOmni : public TianbotChasis {
 public:
-    TianbotOmni(ros::NodeHandle *nh);
+    TianbotOmni(const std::shared_ptr<rclcpp::Node> &node);
 private:
-    ros::Subscriber cmd_vel_sub_;
-    void velocityCallback(const geometry_msgs::Twist::ConstPtr& msg);
+    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
+    void velocityCallback(const geometry_msgs::msg::Twist::ConstPtr &msg);
 };
 
 #endif

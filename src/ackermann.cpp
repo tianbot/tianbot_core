@@ -1,7 +1,7 @@
 #include "ackermann.h"
 #include "protocol.h"
 
-void TianbotAckermann::ackermannCallback(const ackermann_msgs::AckermannDrive::ConstPtr &msg)
+void TianbotAckermann::ackermannCallback(const ackermann_msgs::msg::AckermannDrive::ConstPtr &msg)
 {
     vector<uint8_t> buf;
     struct ackermann_cmd ackermann_cmd;
@@ -15,19 +15,20 @@ void TianbotAckermann::ackermannCallback(const ackermann_msgs::AckermannDrive::C
     {
         delete comm_inf_;
         comm_inf_ = NULL;
-        ROS_ERROR("communication failed, reopen the device");
-        heartbeat_timer_.stop();
-        communication_timer_.stop();
+        RCLCPP_ERROR(get_logger(), "communication failed, reopen the device");
+        heartbeat_timer_.cancel();
+        communication_timer_.cancel();
         open();
-        communication_timer_.start();
+        communication_timer_.reset();
     }
-
-    heartbeat_timer_.stop();
-    heartbeat_timer_.start();
+    heartbeat_timer_->cancel();
+    heartbeat_timer_->reset();
 }
 
-TianbotAckermann::TianbotAckermann(ros::NodeHandle *nh) : TianbotChasis(nh)
+TianbotAckermann::TianbotAckermann(const std::shared_ptr<rclcpp::Node> &node) : TianbotChasis(node)
 {
-    ackermann_sub_ = nh_.subscribe("ackermann_cmd", 5, &TianbotAckermann::ackermannCallback, this);
+    ackermann_sub_ = node->create_subscription<ackermann_msgs::msg::AckermannDrive>(
+        "ackermann_cmd", 1, std::bind(&TianbotAckermann::ackermannCallback, this, std::placeholders::_1));
+
     initDone_ = true;
 }

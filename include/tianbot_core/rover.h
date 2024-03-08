@@ -2,8 +2,8 @@
 #define __ROVER_H__
 
 #include "ackermann.h"
-#include "ros/ros.h"
-#include "std_msgs/String.h"
+#include <rclcpp/rclcpp.hpp>
+#include "std_msgs/msg/string.hpp"
 
 #define MOVE_TYPE_ACKERMAN 0
 #define MOVE_TYPE_ROTATE 1
@@ -11,12 +11,12 @@
 
 class TianbotRover : public TianbotAckermann
 {
-  public:
-    TianbotRover(ros::NodeHandle *nh);
+public:
+    TianbotRover(const std::shared_ptr<rclcpp::Node> &node);
 
-  private:
-    ros::Subscriber rover_sub_;
-    void roverCallback(const std_msgs::String::ConstPtr &msg);
+private:
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr rover_sub_;
+    void roverCallback(const std_msgs::msg::String::ConstPtr &msg);
 };
 
 #endif

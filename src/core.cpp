@@ -109,12 +109,12 @@ void TianbotCore::dataProc(uint8_t *data, unsigned int data_len)
                 {
                     tianbotDataProc(&recv_msg[0], recv_msg.size()); // process recv msg
                 }
-                communication_timer_.stop();                    // restart timer for communication timeout
-                communication_timer_.start();
+                communication_timer_->cancel();                    // restart timer for communication timeout
+                communication_timer_->reset();
             }
             else
             {
-                ROS_INFO("BCC error");
+                RCLCPP_INFO(get_logger(), "BCC error");
             }
             state = 0;
         }
@@ -127,84 +127,85 @@ void TianbotCore::dataProc(uint8_t *data, unsigned int data_len)
     }
 }
 
-void TianbotCore::communicationErrorCallback(const ros::TimerEvent &)
+void TianbotCore::communicationErrorCallback()
 {
-    ROS_ERROR_THROTTLE(5, "Communication with base error");
+    RCUTILS_LOG_ERROR_THROTTLE(RCUTILS_STEADY_TIME, 5, "Communication with base error");
 }
 
-void TianbotCore::heartCallback(const ros::TimerEvent &)
+void TianbotCore::heartCallback()
 {
-    vector<uint8_t> buf;
+    std::vector<uint8_t> buf;
     uint16_t dummy = 0;
 
-    buildCmd(buf, PACK_TYPE_HEART_BEAT, (uint8_t *)&dummy, sizeof(dummy));
-    if (comm_inf_->send(&buf[0], buf.size()) != 0)
+    buildCmd(buf, PACK_TYPE_HEART_BEAT, reinterpret_cast<uint8_t *>(&dummy), sizeof(dummy));
+    if (comm_inf_.send(&buf[0], buf.size()) != 0)
     {
         delete comm_inf_;
         comm_inf_ = NULL;
-        ROS_ERROR("communication failed, reopen the device");
-        heartbeat_timer_.stop();
-        communication_timer_.stop();
+        RCLCPP_ERROR(get_logger(), "communication failed, reopen the device");
+        heartbeat_timer_->cancel();
+        communication_timer_->cancel();
         open();
-        communication_timer_.start();
+        communication_timer_->reset();
     }
-    heartbeat_timer_.start();
+    heartbeat_timer_->reset();
 }
 
-void TianbotCore::debugCmdCallback(const std_msgs::String::ConstPtr &msg)
+void TianbotCore::debugCmdCallback(const std_msgs::msg::String::ConstPtr &msg)
 {
     vector<uint8_t> buf;
     buildCmd(buf, PACK_TYPE_DEBUG, (uint8_t *)msg->data.c_str(), msg->data.length());
-    if (comm_inf_->send(&buf[0], buf.size()) != 0)
+    if (comm_inf_.send(&buf[0], buf.size()) != 0)
     {
         delete comm_inf_;
         comm_inf_ = NULL;
-        ROS_ERROR("communication failed, reopen the device");
-        heartbeat_timer_.stop();
-        communication_timer_.stop();
+        RCLCPP_ERROR(get_logger(), "communication failed, reopen the device");
+        heartbeat_timer_->cancel();
+        communication_timer_->cancel();
         open();
-        communication_timer_.start();
+        communication_timer_->reset();
     }
-    heartbeat_timer_.stop();
-    heartbeat_timer_.start();
+    heartbeat_timer_->cancel();
+    heartbeat_timer_->reset();
 }
 
-bool TianbotCore::debugCmdSrv(tianbot_core::DebugCmd::Request &req, tianbot_core::DebugCmd::Response &res)
+bool TianbotCore::debugCmdSrv(const std::shared_ptr<tianbot_core::srv::DebugCmd::Request> req, 
+                            std::shared_ptr<tianbot_core::srv::DebugCmd::Response> res)
 {
     vector<uint8_t> buf;
     debugResultFlag_ = false;
     uint32_t count = 200;
-    buildCmd(buf, PACK_TYPE_DEBUG, (uint8_t *)req.cmd.c_str(), req.cmd.length());
+    buildCmd(buf, PACK_TYPE_DEBUG, (uint8_t *)req->cmd.c_str(), req->cmd.length());
     if (comm_inf_->send(&buf[0], buf.size()) != 0)
     {
         delete comm_inf_;
         comm_inf_ = NULL;
         ROS_ERROR("communication failed, reopen the device");
-        heartbeat_timer_.stop();
-        communication_timer_.stop();
+        heartbeat_timer_.cancel();
+        communication_timer_.cancel();
         open();
-        communication_timer_.start();
+        communication_timer_.reset();
     }
-    if (req.cmd == "reset")
+    if (req->cmd == "reset")
     {
-        res.result = "reset";
+        res->result = "reset";
         return true;
     }
-    else if (req.cmd == "param save" || req.cmd == "param reset")
+    else if (req->cmd == "param save" || req->cmd == "param reset")
     {
         count = 2000;
     }
-    else if (req.cmd.find("set_") != req.cmd.npos) // adaptation for old racecar
+    else if (req->cmd.find("set_") != req->cmd.npos) // adaptation for old racecar
     {
         count = 3000;
     }
     while (count-- && !debugResultFlag_)
     {
-        ros::Duration(0.001).sleep();
+        rclcpp::sleep_for(std::chrono::milliseconds(1));
     }
     if (debugResultFlag_)
     {
-        res.result = debugResultStr_;
+        res->result = debugResultStr_;
         return true;
     }
     else
@@ -238,14 +239,14 @@ void TianbotCore::checkDevType(void)
             delete comm_inf_;
             comm_inf_ = NULL;
             ROS_ERROR("communication failed, reopen the device");
-            heartbeat_timer_.stop();
-            communication_timer_.stop();
+            heartbeat_timer_.cancel();
+            communication_timer_.cancel();
             open();
-            communication_timer_.start();
+            communication_timer_.reset();
         }
         while (count-- && !debugResultFlag_)
         {
-            ros::Duration(0.001).sleep();
+            rclcpp::sleep_for(std::chrono::milliseconds(1));
         }
         if (debugResultFlag_)
         {
@@ -254,13 +255,13 @@ void TianbotCore::checkDevType(void)
         }
         else
         {
-            ROS_INFO("Get Device type failed, retry after 1s ...");
-            ros::Duration(1).sleep();
+            RCLCPP_ERROR(get_logger(), "Get Device type failed, retry after 1s ...");
+            rclcpp::sleep_for(std::chrono::seconds(1));
         }
     }
     if (retry == 5)
     {
-        ROS_ERROR("No valid device type found");
+        RCLCPP_ERROR(get_logger(), "No valid device type found");
         return;
     }
     for (int i = 0; type_keyword_list[i] != "end"; i++)
@@ -275,82 +276,101 @@ void TianbotCore::checkDevType(void)
                 end = dev_param.length();
             }
             dev_type = dev_param.substr(start, end - start);
-            ROS_INFO("Get device type [%s]", dev_type.c_str());
-            nh_.param<std::string>("type", type, DEFAULT_TYPE);
+            RCLCPP_INFO(get_logger(), "Get device type [%s]", dev_type.c_str());
+            this->declare_parameter("type", rclcpp::PARAMETER_STRING);
+            if (!this->get_parameter("type", type)) {
+                type = DEFAULT_TYPE;
+            }
             if (dev_type == "omni" || dev_type == "mecanum")
             {
                 dev_type = "omni";
             }
             if (type == dev_type)
             {
-                ROS_INFO("Device type match");
+                RCLCPP_INFO(get_logger(), "Device type match");
             }
             else
             {
-                ROS_ERROR("Device type mismatch, set [%s] get [%s]", type.c_str(), dev_type.c_str());
+                RCLCPP_ERROR(get_logger(), "Device type mismatch, set [%s] get [%s]", type.c_str(), dev_type.c_str());
             }
             return;
         }
     }
-    ROS_ERROR("No valid device type found");
+    RCLCPP_ERROR(get_logger(), "No valid device type found");
 }
 
-void TianbotCore::open(void)
-{
-    std::string param_serial_port;
-    std::string client_ip;
-    if (!nh_.getParam("serial_port", param_serial_port) && !nh_.getParam("client_ip", client_ip))
-    {
-        ROS_FATAL("Please specify the serial_port or client_ip");
-        exit(-1);
-    }
-    else if (nh_.getParam("serial_port", param_serial_port))
-    {
-        comm_inf_ = new Serial();
-        struct serial_cfg s_cfg;
-        nh_.param<int>("serial_baudrate", s_cfg.rate, DEFAULT_SERIAL_BAUDRATE);
-        s_cfg.device = (char *)param_serial_port.c_str();
-        s_cfg.databits = 8;
-        s_cfg.flow_ctrl = 0;
-        s_cfg.parity = 'N';
-        s_cfg.stopbits = 1;
-        //ROS_INFO("Using %s for communication, baudrate: %d", param_serial_port.c_str(), s_cfg.rate);
-        while (comm_inf_->open(&s_cfg, boost::bind(&TianbotCore::dataProc, this, _1, _2)) != true)
-        {
-            if (!ros::ok())
-                exit(0);
-            ROS_ERROR_THROTTLE(5.0, "Device %s open failed", param_serial_port.c_str());
-            ros::Duration(0.5).sleep();
-        }
-        ROS_INFO("Device %s open successfully", param_serial_port.c_str());
-    }
-    else if (nh_.getParam("client_ip", client_ip))
-    {
-        comm_inf_ = new Udp();
-        struct udp_cfg u_cfg;
-        nh_.param<int>("client_port", u_cfg.udp_send_port, DEFAULT_CLIENT_PORT);
-        nh_.param<int>("server_port", u_cfg.udp_recv_port, DEFAULT_SERVER_PORT);
-        u_cfg.client_addr = client_ip;
-        while (comm_inf_->open(&u_cfg, boost::bind(&TianbotCore::dataProc, this, _1, _2)) != true)
-        {
-            ROS_ERROR_THROTTLE(5.0, "Lesten device %s:%d failed", client_ip.c_str(), u_cfg.udp_send_port);
-            ros::Duration(0.5).sleep();
-        }
-        ROS_INFO("Listen device %s:%d, server port %d ", client_ip.c_str(), u_cfg.udp_send_port, u_cfg.udp_recv_port);
-    }
-}
+// void TianbotCore::open(void)
+// {
+//     std::string param_serial_port;
+//     std::string client_ip;
+//     if (!nh_.getParam("serial_port", param_serial_port) && !nh_.getParam("client_ip", client_ip))
+//     {
+//         ROS_FATAL("Please specify the serial_port or client_ip");
+//         exit(-1);
+//     }
+//     else if (nh_.getParam("serial_port", param_serial_port))
+//     {
+//         comm_inf_ = new Serial();
+//         struct serial_cfg s_cfg;
+//         nh_.param<int>("serial_baudrate", s_cfg.rate, DEFAULT_SERIAL_BAUDRATE);
+//         s_cfg.device = (char *)param_serial_port.c_str();
+//         s_cfg.databits = 8;
+//         s_cfg.flow_ctrl = 0;
+//         s_cfg.parity = 'N';
+//         s_cfg.stopbits = 1;
+//         //ROS_INFO("Using %s for communication, baudrate: %d", param_serial_port.c_str(), s_cfg.rate);
+//         while (comm_inf_->open(&s_cfg, boost::bind(&TianbotCore::dataProc, this, _1, _2)) != true)
+//         {
+//             if (!ros::ok())
+//                 exit(0);
+//             ROS_ERROR_THROTTLE(5.0, "Device %s open failed", param_serial_port.c_str());
+//             ros::Duration(0.5).sleep();
+//         }
+//         ROS_INFO("Device %s open successfully", param_serial_port.c_str());
+//     }
+//     else if (nh_.getParam("client_ip", client_ip))
+//     {
+//         comm_inf_ = new Udp();
+//         struct udp_cfg u_cfg;
+//         nh_.param<int>("client_port", u_cfg.udp_send_port, DEFAULT_CLIENT_PORT);
+//         nh_.param<int>("server_port", u_cfg.udp_recv_port, DEFAULT_SERVER_PORT);
+//         u_cfg.client_addr = client_ip;
+//         while (comm_inf_->open(&u_cfg, boost::bind(&TianbotCore::dataProc, this, _1, _2)) != true)
+//         {
+//             ROS_ERROR_THROTTLE(5.0, "Lesten device %s:%d failed", client_ip.c_str(), u_cfg.udp_send_port);
+//             ros::Duration(0.5).sleep();
+//         }
+//         ROS_INFO("Listen device %s:%d, server port %d ", client_ip.c_str(), u_cfg.udp_send_port, u_cfg.udp_recv_port);
+//     }
+// }
 
-TianbotCore::TianbotCore(ros::NodeHandle *nh) : nh_(*nh), initDone_(false)
+TianbotCore::TianbotCore(const std::shared_ptr<rclcpp::Node> &node)
+    : Node("tianbot_core"), initDone_(false)
 {
     open();
-    debug_result_pub_ = nh_.advertise<std_msgs::String>("debug_result", 1);
-    debug_cmd_sub_ = nh_.subscribe("debug_cmd", 1, &TianbotCore::debugCmdCallback, this);
-    param_set_ = nh_.advertiseService<tianbot_core::DebugCmd::Request, tianbot_core::DebugCmd::Response>("debug_cmd_srv", boost::bind(&TianbotCore::debugCmdSrv, this, _1, _2));
-    heartbeat_timer_ = nh_.createTimer(ros::Duration(0.2), &TianbotCore::heartCallback, this);
-    communication_timer_ = nh_.createTimer(ros::Duration(0.2), &TianbotCore::communicationErrorCallback, this);
-    heartbeat_timer_.stop();
-    communication_timer_.stop();
+    debug_result_pub_ = node->create_publisher<std_msgs::msg::String>("debug_result", 1);
+    debug_cmd_sub_ = node->create_subscription<std_msgs::msg::String>(
+        "debug_cmd", 1, std::bind(&TianbotCore::debugCmdCallback, this, std::placeholders::_1));
+
+//     param_set_ = nh_.advertiseService<tianbot_core::DebugCmd::Request, tianbot_core::DebugCmd::Response>("debug_cmd_srv", boost::bind(&TianbotCore::debugCmdSrv, this, _1, _2));
+//   rclcpp::Service<example_interfaces::srv::AddTwoInts>::SharedPtr 
+// service = node->create_service<example_interfaces::srv::AddTwoInts>("add_two_ints", &add);
+
+// TODO,service server, not working
+//    param_set_ = this->create_service<tianbot_core::srv::DebugCmd>(
+//         "debug_cmd_srv", std::bind(&TianbotCore::debugCmdSrv, this, std::placeholders::_1, std::placeholders::_2));
+    // param_set_ = node->create_service<tianbot_core::srv::DebugCmd>("debug_cmd_srv", &TianbotCore::debugCmdSrv);
+    param_set_ = node->create_service<tianbot_core::srv::DebugCmd>(
+        "debug_cmd_srv",
+        std::bind(&TianbotCore::debugCmdSrv, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+
+    heartbeat_timer_ = node->create_wall_timer(std::chrono::milliseconds(200), std::bind(&TianbotCore::heartCallback, this));
+    communication_timer_ = node->create_wall_timer(std::chrono::milliseconds(200), std::bind(&TianbotCore::communicationErrorCallback, this));
+    heartbeat_timer_->cancel();
+    communication_timer_->cancel();
     
-    heartbeat_timer_.start();
-    communication_timer_.start();
+    heartbeat_timer_->reset();
+    communication_timer_->reset();
 }
