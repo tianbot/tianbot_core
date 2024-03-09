@@ -48,6 +48,45 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
         }
         break;
 
+    case PACK_TYPE_ODOM_V2_RESPONSE:
+        if (sizeof(struct odom_v2) == p->len - 2)
+        {
+            nav_msgs::Odometry odom_msg;
+            struct odom_v2 *pOdom = (struct odom_v2 *)(p->data);
+            ros::Time current_time = ros::Time::now();
+            odom_msg.header.stamp = current_time;
+            // odom_msg.header.frame_id = (nh_.getNamespace() + "/" + odom_frame_).erase(0,1);
+            odom_msg.header.frame_id = odom_frame_;
+
+            odom_msg.pose.pose.position.x = pOdom->pose.point.x;
+            odom_msg.pose.pose.position.y = pOdom->pose.point.y;
+            odom_msg.pose.pose.position.z = pOdom->pose.point.z;
+            //vector3 x->roll y->pitch z->yaw
+            geometry_msgs::Quaternion q = tf::createQuaternionMsgFromRollPitchYaw(pOdom->pose.rpy.x, pOdom->pose.rpy.y, pOdom->pose.rpy.z);
+            odom_msg.pose.pose.orientation = q;
+            // set the velocity
+            odom_msg.child_frame_id = base_frame_;
+            odom_msg.twist.twist.linear.x = pOdom->twist.linear.x;
+            odom_msg.twist.twist.linear.y = pOdom->twist.linear.y;
+            odom_msg.twist.twist.linear.z = pOdom->twist.linear.z;
+            odom_msg.twist.twist.angular.x = pOdom->twist.angular.x;
+            odom_msg.twist.twist.angular.y = pOdom->twist.angular.y;
+            odom_msg.twist.twist.angular.z = pOdom->twist.angular.z;
+            // publish the message
+            odom_pub_.publish(odom_msg);
+            if (publish_tf_)
+            {
+                odom_tf_.header.stamp = current_time;
+                odom_tf_.transform.translation.x = pOdom->pose.point.x;
+                odom_tf_.transform.translation.y = pOdom->pose.point.y;
+                odom_tf_.transform.translation.z = pOdom->pose.point.z;
+
+                odom_tf_.transform.rotation = odom_msg.pose.pose.orientation;
+                tf_broadcaster_.sendTransform(odom_tf_);
+            }
+        }
+        break;
+
     case PACK_TYPE_UWB_RESPONSE:
         if (sizeof(struct uwb) == p->len - 2)
         {
@@ -87,8 +126,7 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
         }
         break;
 
-    case PACK_TYPE_DEBUG_RESPONSE:
-    {
+    case PACK_TYPE_DEBUG_RESPONSE: {
         std_msgs::String debug_msg;
         p->data[p->len - 2] = '\0';
         debug_msg.data = (char *)(p->data);
@@ -103,7 +141,8 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
     }
 }
 
-TianbotChasis::TianbotChasis(ros::NodeHandle *nh) : TianbotCore(nh), publisher_init_done(false)
+TianbotChasis::TianbotChasis(ros::NodeHandle *nh)
+    : TianbotCore(nh), publisher_init_done(false)
 {
     nh_.param<std::string>("base_frame", base_frame_, DEFAULT_BASE_FRAME);
     nh_.param<std::string>("odom_frame", odom_frame_, DEFAULT_ODOM_FRAME);

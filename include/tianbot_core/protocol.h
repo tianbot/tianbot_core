@@ -19,6 +19,7 @@ enum
     PACK_TYPE_UWB_RESPONSE,
     PACK_TYPE_HEART_BEAT_RESPONSE,
     PACK_TYPE_IMU_REPONSE,
+    PACK_TYPE_ODOM_V2_RESPONSE,
     PACK_TYPE_DEBUG_RESPONSE = 0xC000
 };
 
@@ -49,9 +50,21 @@ struct pose
     float yaw;
 };
 
+struct pose_v2
+{
+    struct vector3 point;
+    struct vector3 rpy;
+};
+
 struct odom
 {
     struct pose pose;
+    struct twist twist;
+};
+
+struct odom_v2
+{
+    struct pose_v2 pose;
     struct twist twist;
 };
 
