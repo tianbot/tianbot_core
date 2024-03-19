@@ -10,7 +10,7 @@ def generate_launch_description():
 
         
     return LaunchDescription([
-        DeclareLaunchArgument('serial_port', default_value=LaunchConfiguration('serial_port',  default='/dev/ttyUSB0')),
+        DeclareLaunchArgument('serial_port', default_value=LaunchConfiguration('serial_port',  default='/dev/tianbot_racecar')),
         DeclareLaunchArgument('serial_baudrate', default_value=LaunchConfiguration('serial_baudrate',  default='115200')),
       
         Node(
@@ -22,7 +22,10 @@ def generate_launch_description():
                 {'serial_baudrate': LaunchConfiguration('serial_baudrate')},
                 {'type': 'ackermann'},
                 {'type_verify': False},
-                {'publish_tf': False}
+                {'publish_tf': False},
+                {'base_frame':'base_link'},
+                {'odom_frame':'odom'},
+                {'imu_frame':'imu_link'}
             ]
         ),
 
