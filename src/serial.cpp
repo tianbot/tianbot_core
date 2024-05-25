@@ -92,6 +92,7 @@ void *Serial::serial_recv(void *p)
         }
         return NULL;
     }
+    return NULL;
 }
 
 bool Serial::config(int speed, int flow_ctrl, int databits, int stopbits,
