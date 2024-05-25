@@ -28,7 +28,7 @@ void TianbotRover::roverCallback(const std_msgs::String::ConstPtr &msg)
     }
 
     buildCmd(buf, PACK_TYPE_SET_ROVER_MOTION_MODE, (uint8_t *)&motion_mode, sizeof(motion_mode));
-    serial_.send(&buf[0], buf.size());
+    comm_inf_->send(&buf[0], buf.size());
 
     heartbeat_timer_.stop();
     heartbeat_timer_.start();

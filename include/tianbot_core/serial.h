@@ -31,21 +31,25 @@
 #ifndef __SERIAL_H__
 #define __SERIAL_H__
 
+#include "comm_if.h"
 #include "stdint.h"
 #include <pthread.h>
-#include "boost/bind.hpp"
-#include "boost/function.hpp"
 
-using namespace boost;
-typedef function<void(uint8_t *data, unsigned int data_len)> serial_recv_cb;
+struct serial_cfg {
+    char *device;
+    int rate;
+    int flow_ctrl;
+    int databits;
+    int stopbits;
+    int parity;
+};
 
-class Serial
+class Serial : public CommInterface
 {
 public:
-    bool open(const char *device, int rate, int flow_ctrl, int databits,
-              int stopbits, int parity, serial_recv_cb cb);
-    int send(uint8_t *data, int len);
-    void close(void);
+    bool open(void *cfg, recv_cb cb) override;
+    int send(uint8_t *data, int len) override;
+    void close(void) override;
 
 private:
     bool config(int speed, int flow_ctrl, int databits, int stopbits,
@@ -53,7 +57,7 @@ private:
     pthread_t recv_thread_;
     static void *serial_recv(void *p);
     int running_;
-    serial_recv_cb recv_cb_;
+    recv_cb recv_cb_;
     int fd_;
 };
 

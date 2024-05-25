@@ -11,7 +11,7 @@ void TianbotAckermann::ackermannCallback(const ackermann_msgs::AckermannDrive::C
     ackermann_cmd.speed = msg->speed;
 
     buildCmd(buf, PACK_TYPE_ACKMAN_VEL, (uint8_t *)&ackermann_cmd, sizeof(ackermann_cmd));
-    serial_.send(&buf[0], buf.size());
+    comm_inf_->send(&buf[0], buf.size());
 
     heartbeat_timer_.stop();
     heartbeat_timer_.start();

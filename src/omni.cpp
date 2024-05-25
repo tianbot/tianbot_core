@@ -16,7 +16,7 @@ void TianbotOmni::velocityCallback(const geometry_msgs::Twist::ConstPtr &msg)
     twist.angular.z = msg->angular.z;
 
     buildCmd(buf, PACK_TYPE_CMD_VEL, (uint8_t *)&twist, sizeof(twist));
-    serial_.send(&buf[0], buf.size());
+    comm_inf_->send(&buf[0], buf.size());
 
     heartbeat_timer_.stop();
     heartbeat_timer_.start();
