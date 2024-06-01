@@ -25,8 +25,10 @@ void *Udp::udp_recv(void *p)
     while (pThis->running_)
     {
         memset(recvbuff, 0, sizeof(recvbuff));
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 0;
         ready = select(pThis->sockfd_ + 1, &rfds, NULL, NULL, &timeout);
-        if (ready == -1)
+        if (ready < 0)
         {
             perror("select");
             return NULL;
@@ -63,10 +65,9 @@ bool Udp::open(void *cfg, recv_cb cb)
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(pcfg->udp_recv_port);
-
     client_addr.sin_addr.s_addr = inet_addr(pcfg->client_addr.c_str());
     client_addr.sin_family = AF_INET;
-    client_addr.sin_port = pcfg->udp_send_port;
+    client_addr.sin_port = htons(pcfg->udp_send_port);
 
     if (bind(sockfd_, (const struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
@@ -83,7 +84,8 @@ bool Udp::open(void *cfg, recv_cb cb)
 
 int Udp::send(uint8_t *data, int len)
 {
-    if (sendto(sockfd_, data, len, 0, (struct sockaddr *)&client_addr, sizeof(client_addr)) < 0) {
+    if (sendto(sockfd_, data, len, 0, (struct sockaddr *)&client_addr, sizeof(client_addr)) < 0)
+    {
         perror("sendto failed");
         ::close(sockfd_);
         return -1;
@@ -97,4 +99,9 @@ void Udp::close(void)
     if (recv_thread_)
         pthread_join(recv_thread_, nullptr);
     ::close(sockfd_);
+}
+
+Udp::~Udp(void)
+{
+    close();
 }

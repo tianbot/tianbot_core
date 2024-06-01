@@ -18,6 +18,8 @@ public:
     bool open(void *cfg, recv_cb cb) override;
     int send(uint8_t *data, int len) override;
     void close(void) override;
+    ~Udp(void);
+
 private:
     pthread_t recv_thread_;
     static void *udp_recv(void *p);

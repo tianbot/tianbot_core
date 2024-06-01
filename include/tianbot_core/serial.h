@@ -50,6 +50,7 @@ public:
     bool open(void *cfg, recv_cb cb) override;
     int send(uint8_t *data, int len) override;
     void close(void) override;
+    ~Serial(void);
 
 private:
     bool config(int speed, int flow_ctrl, int databits, int stopbits,

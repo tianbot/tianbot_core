@@ -71,8 +71,10 @@ void *Serial::serial_recv(void *p)
     while (pThis->running_)
     {
         memset(recvbuff, 0, sizeof(recvbuff));
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 0;
         ready = select(pThis->fd_ + 1, &rfds, NULL, NULL, &timeout);
-        if (ready == -1)
+        if (ready < 0)
         {
             perror("select");
             return NULL;
@@ -90,7 +92,6 @@ void *Serial::serial_recv(void *p)
             }
             pThis->recv_cb_(recvbuff, recvlen);
         }
-        return NULL;
     }
     return NULL;
 }
@@ -325,4 +326,9 @@ void Serial::close(void)
     {
         pthread_join(recv_thread_, NULL);
     }
+}
+
+Serial::~Serial(void)
+{
+    close();
 }

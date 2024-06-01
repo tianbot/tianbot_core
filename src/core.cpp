@@ -278,8 +278,8 @@ void TianbotCore::open(void)
         nh_.param<int>("serial_baudrate", s_cfg.rate, DEFAULT_SERIAL_BAUDRATE);
         s_cfg.device = (char *)param_serial_port.c_str();
         s_cfg.databits = 8;
-        s_cfg.flow_ctrl = 'N';
-        s_cfg.parity = 0;
+        s_cfg.flow_ctrl = 0;
+        s_cfg.parity = 'N';
         s_cfg.stopbits = 1;
         ROS_INFO("Using %s for communication, baudrate: %d", param_serial_port.c_str(), s_cfg.rate);
         while (comm_inf_->open(&s_cfg, boost::bind(&TianbotCore::dataProc, this, _1, _2)) != true)
@@ -300,10 +300,10 @@ void TianbotCore::open(void)
         u_cfg.client_addr = client_ip;
         while (comm_inf_->open(&u_cfg, boost::bind(&TianbotCore::dataProc, this, _1, _2)) != true)
         {
-            ROS_ERROR_THROTTLE(5.0, "Device %s open failed", param_serial_port.c_str());
+            ROS_ERROR_THROTTLE(5.0, "Lesten device %s:%d failed", client_ip.c_str(), u_cfg.udp_send_port);
             ros::Duration(0.5).sleep();
         }
-        ROS_INFO("Device %s open successfully", param_serial_port.c_str());
+        ROS_INFO("Listen device %s:%d, server port %d ", client_ip.c_str(), u_cfg.udp_send_port, u_cfg.udp_recv_port);
     }
 }
 
