@@ -65,14 +65,13 @@ void *Serial::serial_recv(void *p)
     timeout.tv_usec = 0;
     usleep(100000);
 
-    FD_ZERO(&rfds);
-    FD_SET(pThis->fd_, &rfds);
-
     while (pThis->running_)
     {
         memset(recvbuff, 0, sizeof(recvbuff));
         timeout.tv_sec = 1;
         timeout.tv_usec = 0;
+        FD_ZERO(&rfds);
+        FD_SET(pThis->fd_, &rfds);
         ready = select(pThis->fd_ + 1, &rfds, NULL, NULL, &timeout);
         if (ready < 0)
         {

@@ -19,14 +19,13 @@ void *Udp::udp_recv(void *p)
 
     memset(&clientAddr, 0, sizeof(clientAddr));
 
-    FD_ZERO(&rfds);
-    FD_SET(pThis->sockfd_, &rfds);
-
     while (pThis->running_)
     {
         memset(recvbuff, 0, sizeof(recvbuff));
         timeout.tv_sec = 1;
         timeout.tv_usec = 0;
+        FD_ZERO(&rfds);
+        FD_SET(pThis->sockfd_, &rfds);
         ready = select(pThis->sockfd_ + 1, &rfds, NULL, NULL, &timeout);
         if (ready < 0)
         {
