@@ -33,6 +33,7 @@ public:
     ros::Subscriber debug_cmd_sub_;
     ros::NodeHandle nh_;
     ros::Timer heartbeat_timer_;
+    ros::Timer communication_timer_;
 
     bool debugResultFlag_;
     string debugResultStr_;
@@ -41,17 +42,16 @@ public:
     TianbotCore(ros::NodeHandle *nh);
     void checkDevType(void);
     virtual void tianbotDataProc(unsigned char *buf, int len) = 0;
+    void open(void);
 
 private:
-
-    ros::Timer communication_timer_;
 
     void dataProc(uint8_t *data, unsigned int data_len);
     void heartCallback(const ros::TimerEvent &);
     void communicationErrorCallback(const ros::TimerEvent &);
     void debugCmdCallback(const std_msgs::String::ConstPtr &msg);
     bool debugCmdSrv(tianbot_core::DebugCmd::Request &req,  tianbot_core::DebugCmd::Response &res);
-    void open(void);
+
     ros::ServiceServer param_set_;
 };
 

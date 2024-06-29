@@ -16,8 +16,16 @@ void TianbotOmni::velocityCallback(const geometry_msgs::Twist::ConstPtr &msg)
     twist.angular.z = msg->angular.z;
 
     buildCmd(buf, PACK_TYPE_CMD_VEL, (uint8_t *)&twist, sizeof(twist));
-    comm_inf_->send(&buf[0], buf.size());
-
+    if (comm_inf_->send(&buf[0], buf.size()) != 0)
+    {
+        delete comm_inf_;
+        comm_inf_ = NULL;
+        ROS_ERROR("communication failed, reopen the device");
+        heartbeat_timer_.stop();
+        communication_timer_.stop();
+        open();
+        communication_timer_.start();
+    }
     heartbeat_timer_.stop();
     heartbeat_timer_.start();
 }

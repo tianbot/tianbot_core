@@ -129,6 +129,7 @@ void TianbotCore::dataProc(uint8_t *data, unsigned int data_len)
 
 void TianbotCore::communicationErrorCallback(const ros::TimerEvent &)
 {
+    printf("error callback");
     ROS_ERROR_THROTTLE(5, "Communication with base error");
 }
 
@@ -141,16 +142,32 @@ void TianbotCore::heartCallback(const ros::TimerEvent &)
     if (comm_inf_->send(&buf[0], buf.size()) != 0)
     {
         delete comm_inf_;
+        comm_inf_ = NULL;
         ROS_ERROR("communication failed, reopen the device");
+        heartbeat_timer_.stop();
+        communication_timer_.stop();
         open();
+        communication_timer_.start();
     }
+    heartbeat_timer_.start();
 }
 
 void TianbotCore::debugCmdCallback(const std_msgs::String::ConstPtr &msg)
 {
     vector<uint8_t> buf;
     buildCmd(buf, PACK_TYPE_DEBUG, (uint8_t *)msg->data.c_str(), msg->data.length());
-    comm_inf_->send(&buf[0], buf.size());
+    if (comm_inf_->send(&buf[0], buf.size()) != 0)
+    {
+        delete comm_inf_;
+        comm_inf_ = NULL;
+        ROS_ERROR("communication failed, reopen the device");
+        heartbeat_timer_.stop();
+        communication_timer_.stop();
+        open();
+        communication_timer_.start();
+    }
+    heartbeat_timer_.stop();
+    heartbeat_timer_.start();
 }
 
 bool TianbotCore::debugCmdSrv(tianbot_core::DebugCmd::Request &req, tianbot_core::DebugCmd::Response &res)
@@ -159,7 +176,16 @@ bool TianbotCore::debugCmdSrv(tianbot_core::DebugCmd::Request &req, tianbot_core
     debugResultFlag_ = false;
     uint32_t count = 200;
     buildCmd(buf, PACK_TYPE_DEBUG, (uint8_t *)req.cmd.c_str(), req.cmd.length());
-    comm_inf_->send(&buf[0], buf.size());
+    if (comm_inf_->send(&buf[0], buf.size()) != 0)
+    {
+        delete comm_inf_;
+        comm_inf_ = NULL;
+        ROS_ERROR("communication failed, reopen the device");
+        heartbeat_timer_.stop();
+        communication_timer_.stop();
+        open();
+        communication_timer_.start();
+    }
     if (req.cmd == "reset")
     {
         res.result = "reset";
@@ -208,8 +234,16 @@ void TianbotCore::checkDevType(void)
         count = 300;
         buf.clear();
         buildCmd(buf, PACK_TYPE_DEBUG, (uint8_t *)cmd.c_str(), cmd.length());
-        comm_inf_->send(&buf[0], buf.size());
-
+        if (comm_inf_->send(&buf[0], buf.size()) != 0)
+        {
+            delete comm_inf_;
+            comm_inf_ = NULL;
+            ROS_ERROR("communication failed, reopen the device");
+            heartbeat_timer_.stop();
+            communication_timer_.stop();
+            open();
+            communication_timer_.start();
+        }
         while (count-- && !debugResultFlag_)
         {
             ros::Duration(0.001).sleep();
@@ -281,7 +315,7 @@ void TianbotCore::open(void)
         s_cfg.flow_ctrl = 0;
         s_cfg.parity = 'N';
         s_cfg.stopbits = 1;
-        ROS_INFO("Using %s for communication, baudrate: %d", param_serial_port.c_str(), s_cfg.rate);
+        //ROS_INFO("Using %s for communication, baudrate: %d", param_serial_port.c_str(), s_cfg.rate);
         while (comm_inf_->open(&s_cfg, boost::bind(&TianbotCore::dataProc, this, _1, _2)) != true)
         {
             if (!ros::ok())
