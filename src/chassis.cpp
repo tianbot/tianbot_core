@@ -60,6 +60,18 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
         }
         break;
 
+    case PACK_TYPE_Voltage_RESPONSE:
+        if (sizeof(struct voltage) == p->len - 2)
+        {
+            std_msgs::Float32 battery_msg;
+            struct voltage *pvoltage = (struct voltage *)(p->data);
+            battery_msg.data = pvoltage->Battery_voltage;
+            voltage_pub_.publish(battery_msg);
+        }
+        break;
+
+
+
     case PACK_TYPE_HEART_BEAT_RESPONSE:
         break;
 
@@ -114,7 +126,7 @@ TianbotChasis::TianbotChasis(ros::NodeHandle *nh) : TianbotCore(nh), publisher_i
     odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odom", 1);
     imu_pub_ = nh_.advertise<sensor_msgs::Imu>("imu", 1);
     uwb_pub_ = nh_.advertise<geometry_msgs::Pose2D>("uwb", 1);
-
+    voltage_pub_ = nh_.advertise<std_msgs::Float32>("voltage", 1);
     publisher_init_done = true;
 
     odom_tf_.header.frame_id = odom_frame_;

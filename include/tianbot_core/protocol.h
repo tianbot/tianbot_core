@@ -18,7 +18,8 @@ enum
     PACK_TYPE_UWB_RESPONSE,
     PACK_TYPE_HEART_BEAT_RESPONSE,
     PACK_TYPE_IMU_REPONSE,
-    PACK_TYPE_DEBUG_RESPONSE = 0xC000
+    PACK_TYPE_DEBUG_RESPONSE = 0xC000,
+    PACK_TYPE_Voltage_RESPONSE
 };
 
 struct vector3
@@ -75,6 +76,10 @@ struct ackermann_cmd
     float speed;
 };
 
+struct voltage
+{
+    float Battery_voltage;
+};
 struct protocol_pack
 {
     uint16_t head;
