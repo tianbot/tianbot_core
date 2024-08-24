@@ -1,9 +1,9 @@
 #include "core.h"
 #include "protocol.h"
-#include <vector>
 #include <stdint.h>
+#include <vector>
 
-void TianbotCore::serialDataProc(uint8_t *data, unsigned int data_len)
+void TianbotCore::dataProc(uint8_t *data, unsigned int data_len)
 {
     static uint8_t state = 0;
     uint8_t *p = data;
@@ -90,8 +90,7 @@ void TianbotCore::serialDataProc(uint8_t *data, unsigned int data_len)
             }
             break;
 
-        case 7:
-        {
+        case 7: {
             int i;
             uint8_t bcc = 0;
             recv_msg.push_back(*p);
@@ -106,7 +105,10 @@ void TianbotCore::serialDataProc(uint8_t *data, unsigned int data_len)
 
             if (bcc == 0)
             {
-                tianbotDataProc(&recv_msg[0], recv_msg.size()); // process recv msg
+                if (initDone_)
+                {
+                    tianbotDataProc(&recv_msg[0], recv_msg.size()); // process recv msg
+                }
                 communication_timer_.stop();                    // restart timer for communication timeout
                 communication_timer_.start();
             }
@@ -127,6 +129,7 @@ void TianbotCore::serialDataProc(uint8_t *data, unsigned int data_len)
 
 void TianbotCore::communicationErrorCallback(const ros::TimerEvent &)
 {
+    printf("error callback");
     ROS_ERROR_THROTTLE(5, "Communication with base error");
 }
 
@@ -136,31 +139,35 @@ void TianbotCore::heartCallback(const ros::TimerEvent &)
     uint16_t dummy = 0;
 
     buildCmd(buf, PACK_TYPE_HEART_BEAT, (uint8_t *)&dummy, sizeof(dummy));
-    if (serial_.send(&buf[0], buf.size()) != 0)
+    if (comm_inf_->send(&buf[0], buf.size()) != 0)
     {
-        std::string param_serial_port;
-        int32_t param_serial_baudrate;
-        nh_.param<std::string>("serial_port", param_serial_port, DEFAULT_SERIAL_DEVICE);
-        nh_.param<int>("serial_baudrate", param_serial_baudrate, DEFAULT_SERIAL_BAUDRATE);
+        delete comm_inf_;
+        comm_inf_ = NULL;
+        ROS_ERROR("communication failed, reopen the device");
         heartbeat_timer_.stop();
         communication_timer_.stop();
-        while (serial_.open(param_serial_port.c_str(), param_serial_baudrate, 0, 8, 1, 'N',
-                            boost::bind(&TianbotCore::serialDataProc, this, _1, _2)) != true)
-        {
-            ROS_ERROR_THROTTLE(5.0, "Device %s disconnected", param_serial_port.c_str());
-            ros::Duration(0.5).sleep();
-        }
-        ROS_INFO("Device %s connected", param_serial_port.c_str());
-        heartbeat_timer_.start();
+        open();
         communication_timer_.start();
     }
+    heartbeat_timer_.start();
 }
 
 void TianbotCore::debugCmdCallback(const std_msgs::String::ConstPtr &msg)
 {
     vector<uint8_t> buf;
     buildCmd(buf, PACK_TYPE_DEBUG, (uint8_t *)msg->data.c_str(), msg->data.length());
-    serial_.send(&buf[0], buf.size());
+    if (comm_inf_->send(&buf[0], buf.size()) != 0)
+    {
+        delete comm_inf_;
+        comm_inf_ = NULL;
+        ROS_ERROR("communication failed, reopen the device");
+        heartbeat_timer_.stop();
+        communication_timer_.stop();
+        open();
+        communication_timer_.start();
+    }
+    heartbeat_timer_.stop();
+    heartbeat_timer_.start();
 }
 
 bool TianbotCore::debugCmdSrv(tianbot_core::DebugCmd::Request &req, tianbot_core::DebugCmd::Response &res)
@@ -169,15 +176,28 @@ bool TianbotCore::debugCmdSrv(tianbot_core::DebugCmd::Request &req, tianbot_core
     debugResultFlag_ = false;
     uint32_t count = 200;
     buildCmd(buf, PACK_TYPE_DEBUG, (uint8_t *)req.cmd.c_str(), req.cmd.length());
-    serial_.send(&buf[0], buf.size());
+    if (comm_inf_->send(&buf[0], buf.size()) != 0)
+    {
+        delete comm_inf_;
+        comm_inf_ = NULL;
+        ROS_ERROR("communication failed, reopen the device");
+        heartbeat_timer_.stop();
+        communication_timer_.stop();
+        open();
+        communication_timer_.start();
+    }
     if (req.cmd == "reset")
     {
         res.result = "reset";
         return true;
     }
-    else if (req.cmd == "param save")
+    else if (req.cmd == "param save" || req.cmd == "param reset")
     {
         count = 2000;
+    }
+    else if (req.cmd.find("set_") != req.cmd.npos) // adaptation for old racecar
+    {
+        count = 3000;
     }
     while (count-- && !debugResultFlag_)
     {
@@ -214,8 +234,16 @@ void TianbotCore::checkDevType(void)
         count = 300;
         buf.clear();
         buildCmd(buf, PACK_TYPE_DEBUG, (uint8_t *)cmd.c_str(), cmd.length());
-        serial_.send(&buf[0], buf.size());
-
+        if (comm_inf_->send(&buf[0], buf.size()) != 0)
+        {
+            delete comm_inf_;
+            comm_inf_ = NULL;
+            ROS_ERROR("communication failed, reopen the device");
+            heartbeat_timer_.stop();
+            communication_timer_.stop();
+            open();
+            communication_timer_.start();
+        }
         while (count-- && !debugResultFlag_)
         {
             ros::Duration(0.001).sleep();
@@ -268,12 +296,54 @@ void TianbotCore::checkDevType(void)
     ROS_ERROR("No valid device type found");
 }
 
-TianbotCore::TianbotCore(ros::NodeHandle *nh) : nh_(*nh)
+void TianbotCore::open(void)
 {
     std::string param_serial_port;
-    int32_t param_serial_baudrate;
-    nh_.param<std::string>("serial_port", param_serial_port, DEFAULT_SERIAL_DEVICE);
-    nh_.param<int>("serial_baudrate", param_serial_baudrate, DEFAULT_SERIAL_BAUDRATE);
+    std::string client_ip;
+    if (!nh_.getParam("serial_port", param_serial_port) && !nh_.getParam("client_ip", client_ip))
+    {
+        ROS_FATAL("Please specify the serial_port or client_ip");
+        exit(-1);
+    }
+    else if (nh_.getParam("serial_port", param_serial_port))
+    {
+        comm_inf_ = new Serial();
+        struct serial_cfg s_cfg;
+        nh_.param<int>("serial_baudrate", s_cfg.rate, DEFAULT_SERIAL_BAUDRATE);
+        s_cfg.device = (char *)param_serial_port.c_str();
+        s_cfg.databits = 8;
+        s_cfg.flow_ctrl = 0;
+        s_cfg.parity = 'N';
+        s_cfg.stopbits = 1;
+        //ROS_INFO("Using %s for communication, baudrate: %d", param_serial_port.c_str(), s_cfg.rate);
+        while (comm_inf_->open(&s_cfg, boost::bind(&TianbotCore::dataProc, this, _1, _2)) != true)
+        {
+            if (!ros::ok())
+                exit(0);
+            ROS_ERROR_THROTTLE(5.0, "Device %s open failed", param_serial_port.c_str());
+            ros::Duration(0.5).sleep();
+        }
+        ROS_INFO("Device %s open successfully", param_serial_port.c_str());
+    }
+    else if (nh_.getParam("client_ip", client_ip))
+    {
+        comm_inf_ = new Udp();
+        struct udp_cfg u_cfg;
+        nh_.param<int>("client_port", u_cfg.udp_send_port, DEFAULT_CLIENT_PORT);
+        nh_.param<int>("server_port", u_cfg.udp_recv_port, DEFAULT_SERVER_PORT);
+        u_cfg.client_addr = client_ip;
+        while (comm_inf_->open(&u_cfg, boost::bind(&TianbotCore::dataProc, this, _1, _2)) != true)
+        {
+            ROS_ERROR_THROTTLE(5.0, "Lesten device %s:%d failed", client_ip.c_str(), u_cfg.udp_send_port);
+            ros::Duration(0.5).sleep();
+        }
+        ROS_INFO("Listen device %s:%d, server port %d ", client_ip.c_str(), u_cfg.udp_send_port, u_cfg.udp_recv_port);
+    }
+}
+
+TianbotCore::TianbotCore(ros::NodeHandle *nh) : nh_(*nh), initDone_(false)
+{
+    open();
     debug_result_pub_ = nh_.advertise<std_msgs::String>("debug_result", 1);
     debug_cmd_sub_ = nh_.subscribe("debug_cmd", 1, &TianbotCore::debugCmdCallback, this);
     param_set_ = nh_.advertiseService<tianbot_core::DebugCmd::Request, tianbot_core::DebugCmd::Response>("debug_cmd_srv", boost::bind(&TianbotCore::debugCmdSrv, this, _1, _2));
@@ -281,13 +351,7 @@ TianbotCore::TianbotCore(ros::NodeHandle *nh) : nh_(*nh)
     communication_timer_ = nh_.createTimer(ros::Duration(0.2), &TianbotCore::communicationErrorCallback, this);
     heartbeat_timer_.stop();
     communication_timer_.stop();
-    while (serial_.open(param_serial_port.c_str(), param_serial_baudrate, 0, 8, 1, 'N',
-                        boost::bind(&TianbotCore::serialDataProc, this, _1, _2)) != true)
-    {
-        ROS_ERROR_THROTTLE(5.0, "Device %s connect failed", param_serial_port.c_str());
-        ros::Duration(0.5).sleep();
-    }
-    ROS_INFO("Device %s connect successfully", param_serial_port.c_str());
+    
     heartbeat_timer_.start();
     communication_timer_.start();
 }

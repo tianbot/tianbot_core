@@ -11,7 +11,16 @@ void TianbotAckermann::ackermannCallback(const ackermann_msgs::AckermannDrive::C
     ackermann_cmd.speed = msg->speed;
 
     buildCmd(buf, PACK_TYPE_ACKMAN_VEL, (uint8_t *)&ackermann_cmd, sizeof(ackermann_cmd));
-    serial_.send(&buf[0], buf.size());
+    if (comm_inf_->send(&buf[0], buf.size()) != 0)
+    {
+        delete comm_inf_;
+        comm_inf_ = NULL;
+        ROS_ERROR("communication failed, reopen the device");
+        heartbeat_timer_.stop();
+        communication_timer_.stop();
+        open();
+        communication_timer_.start();
+    }
 
     heartbeat_timer_.stop();
     heartbeat_timer_.start();
@@ -20,4 +29,5 @@ void TianbotAckermann::ackermannCallback(const ackermann_msgs::AckermannDrive::C
 TianbotAckermann::TianbotAckermann(ros::NodeHandle *nh) : TianbotChasis(nh)
 {
     ackermann_sub_ = nh_.subscribe("ackermann_cmd", 5, &TianbotAckermann::ackermannCallback, this);
+    initDone_ = true;
 }
