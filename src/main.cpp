@@ -46,12 +46,8 @@ int main(int argc, char *argv[])
     {
         core->checkDevType();
     }
-    ros::Rate loop_rate(10);
-    while (ros::ok())
-    {
-        ros::spinOnce();
-        loop_rate.sleep();
-    }
+        
+    ros::spin();
 
     delete core;
     return 0;

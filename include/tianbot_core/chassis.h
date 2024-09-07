@@ -12,6 +12,7 @@
 #include <tf/transform_broadcaster.h>
 #include "sensor_msgs/Imu.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Float32.h"
 #include "core.h"
 
 #define DEFAULT_BASE_FRAME "base_link"
@@ -31,6 +32,7 @@ private:
     ros::Publisher odom_pub_;
     ros::Publisher uwb_pub_;
     ros::Publisher imu_pub_;
+    ros::Publisher voltage_pub_;
     ros::Subscriber cmd_vel_sub_;
     geometry_msgs::TransformStamped odom_tf_;
     tf::TransformBroadcaster tf_broadcaster_;

@@ -20,7 +20,9 @@ enum
     PACK_TYPE_HEART_BEAT_RESPONSE,
     PACK_TYPE_IMU_REPONSE,
     PACK_TYPE_ODOM_V2_RESPONSE,
-    PACK_TYPE_DEBUG_RESPONSE = 0xC000
+    PACK_TYPE_DEBUG_RESPONSE = 0xC000,
+    PACK_TYPE_Voltage_RESPONSE
+
 };
 
 struct vector3
@@ -87,6 +89,11 @@ struct ackermann_cmd
 {
     float steering_angle;
     float speed;
+};
+
+struct voltage
+{
+    float Battery_voltage;
 };
 
 struct motion_mode
