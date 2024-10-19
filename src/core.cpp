@@ -129,7 +129,6 @@ void TianbotCore::dataProc(uint8_t *data, unsigned int data_len)
 
 void TianbotCore::communicationErrorCallback(const ros::TimerEvent &)
 {
-    printf("error callback");
     ROS_ERROR_THROTTLE(5, "Communication with base error");
 }
 
