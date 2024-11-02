@@ -10,7 +10,7 @@ def param_set_client(param):
     while(1):
         try:
             debug_cmd = rospy.ServiceProxy('/tianbot_core/debug_cmd_srv', DebugCmd)
-            resp = debug_cmd("param set " + param)
+            resp = debug_cmd(param)
             return resp.result
         except rospy.ServiceException as e:
             count = count - 1
