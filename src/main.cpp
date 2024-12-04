@@ -54,13 +54,13 @@ int main(int argc, char *argv[])
         core->checkDevType();
     }
 
-    rclcpp::Rate loop_rate(10);
-    while (rclcpp::ok())
-    {
-        rclcpp::spin_some(node);
-        loop_rate.sleep();
-    }
-
+    // rclcpp::Rate loop_rate(10);
+    // while (rclcpp::ok())
+    // {
+    //     rclcpp::spin_some(node);
+    //     loop_rate.sleep();
+    // }
+    rclcpp::spin(node);  //
     delete core;
     rclcpp::shutdown();
     return 0;
