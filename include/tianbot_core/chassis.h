@@ -6,6 +6,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "geometry_msgs/msg/pose2_d.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
+#include "geometry_msgs/msg/quaternion.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -35,7 +36,7 @@ private:
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
     rclcpp::Clock::SharedPtr clock_;
     geometry_msgs::msg::TransformStamped odom_tf_;
-    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+    std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     bool publish_tf_;
     std::string base_frame_;
     std::string odom_frame_;
@@ -43,5 +44,19 @@ private:
     bool publisher_init_done;
     virtual void tianbotDataProc(unsigned char *buf, int len);
 };
+
+inline geometry_msgs::msg::Quaternion createQuaternionMsgFromYaw(double yaw)
+{
+    tf2::Quaternion q;
+    q.setRPY(0, 0, yaw);
+    return tf2::toMsg(q);
+}
+
+inline geometry_msgs::msg::Quaternion createQuaternionMsgFromRollPitchYaw(double roll, double pitch, double yaw)
+{
+    tf2::Quaternion q;
+    q.setRPY(roll, pitch, yaw);
+    return tf2::toMsg(q);
+}
 
 #endif

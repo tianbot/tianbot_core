@@ -21,7 +21,7 @@ def generate_launch_description():
                 {'serial_baudrate': LaunchConfiguration('serial_baudrate')},
                 {'type': 'ackermann'},
                 {'type_verify': False},
-                {'publish_tf': False},
+                {'publish_tf': True},
                 {'base_frame':'base_link'},
                 {'odom_frame':'odom'},
                 {'imu_frame':'imu_link'}

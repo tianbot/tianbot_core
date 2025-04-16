@@ -21,6 +21,10 @@ int main(int argc, char *argv[])
     node->declare_parameter("client_ip", rclcpp::PARAMETER_STRING);
     node->declare_parameter("type",  rclcpp::PARAMETER_STRING);
     node->declare_parameter("type_verify", rclcpp::PARAMETER_BOOL);
+    node->declare_parameter("base_frame", rclcpp::PARAMETER_STRING);
+    node->declare_parameter("odom_frame", rclcpp::PARAMETER_STRING);
+    node->declare_parameter("imu_frame", rclcpp::PARAMETER_STRING);
+    node->declare_parameter("publish_tf",rclcpp::PARAMETER_BOOL);
 
     if (!node->get_parameter("type", type)) {
         type = DEFAULT_TYPE;
