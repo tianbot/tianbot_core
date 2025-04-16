@@ -60,7 +60,7 @@ src/protocol.cpp
 
 target_include_directories(tianbot_core PUBLIC
   include
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/tianbot_core>"
   "$<INSTALL_INTERFACE:include>"
 )
 target_link_libraries(tianbot_core

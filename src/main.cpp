@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     //     rclcpp::spin_some(node);
     //     loop_rate.sleep();
     // }
-    rclcpp::spin(node);  //
+    rclcpp::spin(node);
     delete core;
     rclcpp::shutdown();
     return 0;

@@ -12,7 +12,7 @@ public:
 
 private:
     rclcpp::Subscription<ackermann_msgs::msg::AckermannDrive>::SharedPtr ackermann_sub_;
-    void ackermannCallback(const ackermann_msgs::msg::AckermannDrive::ConstPtr &msg);
+    void ackermannCallback(const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr &msg);
 };
 
 #endif

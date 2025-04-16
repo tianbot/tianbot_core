@@ -3,7 +3,7 @@
 
 void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
 {
-    if (!publisher_init_done_)
+    if (!publisher_init_done)
     {
         return;
     }
@@ -50,14 +50,11 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
                 odom_tf_.transform.translation.y = pOdom->pose.point.y;
                 odom_tf_.transform.translation.z = pOdom->pose.point.z;
 
-                odom_tf_.transform.rotation = tf2::toMsg(tf2::Quaternion(pOdom->pose.yaw));
                 q_tf.setRPY(0, 0, pOdom->pose.yaw);
                 odom_tf_.transform.rotation.x = q_tf.x();
                 odom_tf_.transform.rotation.y = q_tf.y();
                 odom_tf_.transform.rotation.z = q_tf.z();
                 odom_tf_.transform.rotation.w = q_tf.w();
-
-                odom_tf_.transform.rotation = odom_msg.pose.pose.orientation;
                 tf_broadcaster_->sendTransform(odom_tf_);
             }
         }
@@ -67,7 +64,7 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
         if (sizeof(struct odom) == p->len - 2)
         {
             nav_msgs::msg::Odometry odom_msg;
-            struct odom *pOdom = (struct odom_v2 *)(p->data);
+            struct odom_v2 *pOdom = (struct odom_v2 *)(p->data);
             rclcpp::Time current_time = clock_->now();
             odom_msg.header.stamp = current_time;
             // odom_msg.header.frame_id = (nh_.getNamespace() + "/" + odom_frame_).erase(0,1);
@@ -77,7 +74,7 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
             odom_msg.pose.pose.position.y = pOdom->pose.point.y;
             odom_msg.pose.pose.position.z = pOdom->pose.point.z;
             //vector3 x->roll y->pitch z->yaw
-            double yaw = pOdom->pose.yaw;
+            double yaw = pOdom->pose.rpy.z;
             geometry_msgs::msg::Quaternion q;
             q.x = 0.0;
             q.y = 0.0;
@@ -95,7 +92,7 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
             // publish the message
             odom_pub_->publish(odom_msg);
             if (publish_tf_)
-            
+            {
                 tf2::Quaternion q_tf;
                 odom_tf_.header.stamp = current_time;
                 odom_tf_.header.frame_id = odom_frame_;
@@ -104,14 +101,11 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
                 odom_tf_.transform.translation.y = pOdom->pose.point.y;
                 odom_tf_.transform.translation.z = pOdom->pose.point.z;
 
-                odom_tf_.transform.rotation = tf2::toMsg(tf2::Quaternion(0, 0, pOdom->pose.yaw));
-                q_tf.setRPY(0, 0, pOdom->pose.yaw;
+                q_tf.setRPY(0, 0, pOdom->pose.rpy.z);
                 odom_tf_.transform.rotation.x = q_tf.x();
                 odom_tf_.transform.rotation.y = q_tf.y();
                 odom_tf_.transform.rotation.z = q_tf.z();
                 odom_tf_.transform.rotation.w = q_tf.w();
-
-                odom_tf_.transform.rotation = odom_msg.pose.pose.orientation;
                 tf_broadcaster_->sendTransform(odom_tf_);
             }
         }
@@ -134,7 +128,7 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
         {
             std_msgs::msg::Float32 battery_msg;
             auto voltage = reinterpret_cast<struct voltage *>(p->data);
-            battery_msg.data = pvoltage->Battery_voltage;
+            battery_msg.data = voltage->Battery_voltage;
             voltage_pub_->publish(battery_msg);
         }
         break;
@@ -166,21 +160,22 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
         break;
 
     case PACK_TYPE_DEBUG_RESPONSE: {
-        std_msgs::msg::String debug_msg;
-        p->data[p->len - 2] = '\0';
-        debug_msg.data = (char *)(p->data);
-        debugResultStr_ = (char *)(p->data);
-        debugResultFlag_ = true;
-        debug_result_pub_->publish(debug_msg);
-    }
-    break;
+            std_msgs::msg::String debug_msg;
+            p->data[p->len - 2] = '\0';
+            debug_msg.data = (char *)(p->data);
+            debugResultStr_ = (char *)(p->data);
+            debugResultFlag_ = true;
+            debug_result_pub_->publish(debug_msg);
+        }
+        break;
 
     default:
         break;
     }
+}
 
 TianbotChasis::TianbotChasis(const std::shared_ptr<rclcpp::Node> & node)
-    : TianbotCore(node), publisher_init_done_(false)
+    : TianbotCore(node), publisher_init_done(false)
 {
     node->declare_parameter("base_frame", base_frame_);
     node->declare_parameter("odom_frame", odom_frame_);
@@ -204,7 +199,7 @@ TianbotChasis::TianbotChasis(const std::shared_ptr<rclcpp::Node> & node)
     odom_pub_ = node->create_publisher<nav_msgs::msg::Odometry>("odom", 1);
     imu_pub_ = node->create_publisher<sensor_msgs::msg::Imu>("imu", 1);
     uwb_pub_ = node->create_publisher<geometry_msgs::msg::Pose2D>("uwb", 1);
-    voltage_pub_ = node->create_publisher<std_msg::msg::Float32>("voltage", 1);
+    voltage_pub_ = node->create_publisher<std_msgs::msg::Float32>("voltage", 1);
     publisher_init_done = true;
 
     odom_tf_.header.frame_id = odom_frame_;

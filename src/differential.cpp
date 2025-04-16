@@ -1,7 +1,7 @@
 #include "differential.h"
 #include "protocol.h"
 
-void TianbotDifferential::velocityCallback(const geometry_msgs::msg::Twist::ConstPtr &msg)
+void TianbotDifferential::velocityCallback(const geometry_msgs::msg::Twist::ConstSharedPtr &msg)
 {
     uint16_t len;
     vector<uint8_t> buf;
@@ -20,11 +20,11 @@ void TianbotDifferential::velocityCallback(const geometry_msgs::msg::Twist::Cons
     {
         delete comm_inf_;
         comm_inf_ = NULL;
-        RCLCPP_ERROR(get_logger(), "communication failed, reopen the device");
-        heartbeat_timer_.cancel();
-        communication_timer_.cancel();
+        RCLCPP_ERROR(this->node->get_logger(), "communication failed, reopen the device");
+        heartbeat_timer_->cancel();
+        communication_timer_->cancel();
         open();
-        communication_timer_.reset();
+        communication_timer_->reset();
     }
 
     heartbeat_timer_->cancel();

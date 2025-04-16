@@ -16,7 +16,7 @@ public:
 
 private:
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr rover_sub_;
-    void roverCallback(const std_msgs::msg::String::ConstPtr &msg);
+    void roverCallback(const std_msgs::msg::String::ConstSharedPtr &msg);
 };
 
 #endif

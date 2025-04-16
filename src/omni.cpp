@@ -1,7 +1,7 @@
 #include "omni.h"
 #include "protocol.h"
 
-void TianbotOmni::velocityCallback(const geometry_msgs::msg::Twist::ConstPtr &msg)
+void TianbotOmni::velocityCallback(const geometry_msgs::msg::Twist::ConstSharedPtr &msg)
 {
     uint16_t len;
     std::vector<uint8_t> buf;
@@ -20,11 +20,11 @@ void TianbotOmni::velocityCallback(const geometry_msgs::msg::Twist::ConstPtr &ms
     {
         delete comm_inf_;
         comm_inf_ = NULL;
-        RCLCPP_ERROR(get_logger(), "communication failed, reopen the device");
-        heartbeat_timer_.cancel();
-        communication_timer_.cancel();
+        RCLCPP_ERROR(this->node->get_logger(), "communication failed, reopen the device");
+        heartbeat_timer_->cancel();
+        communication_timer_->cancel();
         open();
-        communication_timer_.reset();
+        communication_timer_->reset();
     }
     heartbeat_timer_->cancel();
     heartbeat_timer_->reset();

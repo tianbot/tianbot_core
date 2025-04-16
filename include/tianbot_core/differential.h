@@ -10,7 +10,7 @@ public:
     TianbotDifferential(const std::shared_ptr<rclcpp::Node> &node);
 private:
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
-    void velocityCallback(const geometry_msgs::msg::Twist::ConstPtr &msg);
+    void velocityCallback(const geometry_msgs::msg::Twist::ConstSharedPtr &msg);
 };
 
 #endif

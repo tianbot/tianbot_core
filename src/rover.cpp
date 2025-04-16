@@ -1,7 +1,7 @@
 #include "rover.h"
 #include "protocol.h"
 
-void TianbotRover::roverCallback(const std_msgs::msg::String::ConstPtr &msg)
+void TianbotRover::roverCallback(const std_msgs::msg::String::ConstSharedPtr &msg)
 {
     vector<uint8_t> buf;
     struct motion_mode motion_mode;
@@ -10,21 +10,21 @@ void TianbotRover::roverCallback(const std_msgs::msg::String::ConstPtr &msg)
     if (msg->data == "ackermann")
     {
         motion_mode.mode = MOVE_TYPE_ACKERMAN;
-        RCLCPP_INFO(get_logger(), "rover motion mode set to ackermann");
+        RCLCPP_INFO(this->node->get_logger(), "rover motion mode set to ackermann");
     }
     else if (msg->data == "rotate")
     {
         motion_mode.mode = MOVE_TYPE_ROTATE;
-        RCLCPP_INFO(get_logger(), "rover motion mode set to rotate");
+        RCLCPP_INFO(this->node->get_logger(), "rover motion mode set to rotate");
     }
     else if (msg->data == "omni")
     {
         motion_mode.mode = MOVE_TYPE_OMNI;
-        RCLCPP_INFO(get_logger(), "rover motion mode set to omni");
+        RCLCPP_INFO(this->node->get_logger(), "rover motion mode set to omni");
     }
     else
     {
-        RCLCPP_WARN(get_logger(), "rover motion mode set failed, only ackermann / rotate / omni supported!");
+        RCLCPP_WARN(this->node->get_logger(), "rover motion mode set failed, only ackermann / rotate / omni supported!");
     }
 
     buildCmd(buf, PACK_TYPE_SET_ROVER_MOTION_MODE, (uint8_t *)&motion_mode, sizeof(motion_mode));
@@ -32,11 +32,11 @@ void TianbotRover::roverCallback(const std_msgs::msg::String::ConstPtr &msg)
     {
         delete comm_inf_;
         comm_inf_ = NULL;
-        RCLCPP_ERROR(get_logger(), "communication failed, reopen the device");
-        heartbeat_timer_.cancel();
-        communication_timer_.cancel();
+        RCLCPP_ERROR(this->node->get_logger(), "communication failed, reopen the device");
+        heartbeat_timer_->cancel();
+        communication_timer_->cancel();
         open();
-        communication_timer_.reset();
+        communication_timer_->reset();
     }
     heartbeat_timer_->cancel();
     heartbeat_timer_->reset();

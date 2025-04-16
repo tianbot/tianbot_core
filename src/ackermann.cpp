@@ -1,7 +1,7 @@
 #include "ackermann.h"
 #include "protocol.h"
 
-void TianbotAckermann::ackermannCallback(const ackermann_msgs::msg::AckermannDrive::ConstPtr &msg)
+void TianbotAckermann::ackermannCallback(const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr &msg)
 {
     vector<uint8_t> buf;
     struct ackermann_cmd ackermann_cmd;
@@ -15,11 +15,11 @@ void TianbotAckermann::ackermannCallback(const ackermann_msgs::msg::AckermannDri
     {
         delete comm_inf_;
         comm_inf_ = NULL;
-        RCLCPP_ERROR(get_logger(), "communication failed, reopen the device");
-        heartbeat_timer_.cancel();
-        communication_timer_.cancel();
+        RCLCPP_ERROR(this->node->get_logger(), "communication failed, reopen the device");
+        heartbeat_timer_->cancel();
+        communication_timer_->cancel();
         open();
-        communication_timer_.reset();
+        communication_timer_->reset();
     }
     heartbeat_timer_->cancel();
     heartbeat_timer_->reset();
