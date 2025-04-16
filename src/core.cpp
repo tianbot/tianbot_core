@@ -170,7 +170,7 @@ void TianbotCore::debugCmdCallback(const std_msgs::msg::String::ConstSharedPtr &
 }
 
 bool TianbotCore::debugCmdSrv(const std::shared_ptr<tianbot_core::srv::DebugCmd::Request> req, 
-                            std::shared_ptr<tianbot_core::srv::DebugCmd::Response> res)
+                              const std::shared_ptr<tianbot_core::srv::DebugCmd::Response> res)
 {
     vector<uint8_t> buf;
     debugResultFlag_ = false;
@@ -186,6 +186,7 @@ bool TianbotCore::debugCmdSrv(const std::shared_ptr<tianbot_core::srv::DebugCmd:
         open();
         communication_timer_->reset();
     }
+    RCLCPP_INFO(this->node->get_logger(), "cmd: %s", req->cmd.c_str());
     if (req->cmd == "reset")
     {
         res->result = "reset";
@@ -203,6 +204,7 @@ bool TianbotCore::debugCmdSrv(const std::shared_ptr<tianbot_core::srv::DebugCmd:
     {
         rclcpp::sleep_for(std::chrono::milliseconds(1));
     }
+    RCLCPP_INFO(this->node->get_logger(), "result: %s", debugResultStr_.c_str());
     if (debugResultFlag_)
     {
         res->result = debugResultStr_;
@@ -277,7 +279,10 @@ void TianbotCore::checkDevType(void)
             }
             dev_type = dev_param.substr(start, end - start);
             RCLCPP_INFO(this->node->get_logger(), "Get device type [%s]", dev_type.c_str());
-            this->node->declare_parameter("type", rclcpp::PARAMETER_STRING);
+            if (!this->node->has_parameter("type"))
+            {
+                this->node->declare_parameter("type", rclcpp::PARAMETER_STRING);
+            }
             if (!this->node->get_parameter("type", type)) {
                 type = DEFAULT_TYPE;
             }
@@ -312,7 +317,10 @@ void TianbotCore::open(void)
     {
         comm_inf_ = new Serial();
         struct serial_cfg s_cfg;
-        this->node->declare_parameter<int>("serial_baudrate", DEFAULT_SERIAL_BAUDRATE);
+        if (!this->node->has_parameter("serial_baudrate"))
+        {
+            this->node->declare_parameter<int>("serial_baudrate", DEFAULT_SERIAL_BAUDRATE);
+        }
         this->node->get_parameter("serial_baudrate", s_cfg.rate);
         s_cfg.device = (char *)param_serial_port.c_str();
         s_cfg.databits = 8;
@@ -331,21 +339,19 @@ void TianbotCore::open(void)
     }
     else if (this->node->get_parameter("client_ip", client_ip))
     {
-        // comm_inf_ = new Udp();
-        // struct udp_cfg u_cfg;
-        // this->node->declare_parameter<int>("client_port", DEFAULT_CLIENT_PORT);
-        // this->node->declare_parameter<int>("server_port", DEFAULT_SERVER_PORT);
-        // this->node->get_parameter("client_port", u_cfg.udp_send_port);
-        // this->node->get_parameter("server_port", u_cfg.udp_recv_port);
-        // u_cfg.client_addr = client_ip;
-        // while (comm_inf_->open(&u_cfg, boost::bind(&TianbotCore::dataProc, this, _1, _2)) != true)
-        // {
-        //     RCUTILS_LOG_ERROR_THROTTLE(RCUTILS_STEADY_TIME, 5.0, "Lesten device %s:%d failed", client_ip.c_str(), u_cfg.udp_send_port);
-        //     rclcpp::sleep_for(std::chrono::milliseconds(500));
-        // }
-     
-        // RCLCPP_ERROR(this->node->get_logger(), "Listen device %s:%d, server port %d ", client_ip.c_str(), u_cfg.udp_send_port, u_cfg.udp_recv_port);
-        RCLCPP_INFO(this->node->get_logger(), "Device open successfully");
+        comm_inf_ = new Udp();
+        struct udp_cfg u_cfg;
+        this->node->declare_parameter<int>("client_port", DEFAULT_CLIENT_PORT);
+        this->node->declare_parameter<int>("server_port", DEFAULT_SERVER_PORT);
+        this->node->get_parameter("client_port", u_cfg.udp_send_port);
+        this->node->get_parameter("server_port", u_cfg.udp_recv_port);
+        u_cfg.client_addr = client_ip;
+        while (comm_inf_->open(&u_cfg, boost::bind(&TianbotCore::dataProc, this, _1, _2)) != true)
+        {
+            RCUTILS_LOG_ERROR_THROTTLE(RCUTILS_STEADY_TIME, 5.0, "Lesten device %s:%d failed", client_ip.c_str(), u_cfg.udp_send_port);
+            rclcpp::sleep_for(std::chrono::milliseconds(500));
+        }
+        RCLCPP_ERROR(this->node->get_logger(), "Listen device %s:%d, server port %d ", client_ip.c_str(), u_cfg.udp_send_port, u_cfg.udp_recv_port);
     }
 }
 
@@ -357,12 +363,6 @@ TianbotCore::TianbotCore(const std::shared_ptr<rclcpp::Node> &nh)
     debug_cmd_sub_ = node->create_subscription<std_msgs::msg::String>(
         "debug_cmd", 1, std::bind(&TianbotCore::debugCmdCallback, this, std::placeholders::_1));
 
-//     param_set_ = nh_.advertiseService<tianbot_core::DebugCmd::Request, tianbot_core::DebugCmd::Response>("debug_cmd_srv", boost::bind(&TianbotCore::debugCmdSrv, this, _1, _2));
-
-// TODO,service server, not working
-//    param_set_ = this->create_service<tianbot_core::srv::DebugCmd>(
-//         "debug_cmd_srv", std::bind(&TianbotCore::debugCmdSrv, this, std::placeholders::_1, std::placeholders::_2));
-    // param_set_ = node->create_service<tianbot_core::srv::DebugCmd>("debug_cmd_srv", &TianbotCore::debugCmdSrv);
     param_set_ = node->create_service<tianbot_core::srv::DebugCmd>(
         "debug_cmd_srv", std::bind(&TianbotCore::debugCmdSrv, this, std::placeholders::_1, std::placeholders::_2));
 

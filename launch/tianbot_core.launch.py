@@ -18,6 +18,7 @@ def generate_launch_description():
             executable='tianbot_core',
             name='tianbot_core',
             output='screen',
+            namespace='tianbot',
             parameters=[
                 {'serial_port': LaunchConfiguration('serial_port')},
                 {'serial_baudrate': LaunchConfiguration('serial_baudrate')},
