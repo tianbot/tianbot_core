@@ -17,6 +17,8 @@ int main(int argc, char *argv[])
 
     TianbotCore *core = nullptr;
 
+    node->declare_parameter("serial_port", rclcpp::PARAMETER_STRING);
+    node->declare_parameter("client_ip", rclcpp::PARAMETER_STRING);
     node->declare_parameter("type",  rclcpp::PARAMETER_STRING);
     node->declare_parameter("type_verify", rclcpp::PARAMETER_BOOL);
 
