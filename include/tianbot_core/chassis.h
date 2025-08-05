@@ -9,12 +9,17 @@
 #include "geometry_msgs/msg/quaternion.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "tf2_ros/transform_broadcaster.h"
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 #include "sensor_msgs/msg/imu.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/float32.hpp"
 #include "core.h"
+
+#ifdef BUILD_BEFORE_HUMBLE
+    #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#else
+    #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#endif
 
 #define DEFAULT_BASE_FRAME "base_link"
 #define DEFAULT_ODOM_FRAME "odom"
