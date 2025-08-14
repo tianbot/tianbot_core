@@ -22,6 +22,13 @@ source ~/ros2_ws/install/setup.bash
 ros2 launch tianbot_core tianbot_core.launch.py
 ```
 
+## Param Set
+
+```bash
+export ROBOT_NAME=tianbot     # essential, the namespace of service
+python3 scripts/param_set.py param/tom06s 
+```
+
 ## Debug Command
 
 - input
