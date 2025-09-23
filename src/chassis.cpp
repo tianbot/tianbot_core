@@ -118,7 +118,9 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
             signal_msg.data.push_back(pSignal->yellow);
             signal_msg.data.push_back(pSignal->green);
             signal_msg.data.push_back(pSignal->buzzer);
-            stack_light_pub_.publish(signal_msg);
+            if (stack_light_pub_) {
+                stack_light_pub_.publish(signal_msg);
+            }
         }
         break;
     
@@ -128,7 +130,9 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
             std_msgs::UInt8 actuator_msg;
             struct actuator_status *pActuator = (struct actuator_status *)(p->data);
             actuator_msg.data = pActuator->state;
-            lift_actuator_pub_.publish(actuator_msg);
+            if (lift_actuator_pub_) {
+                lift_actuator_pub_.publish(actuator_msg);
+            }
         }
         break;
     case PACK_TYPE_HAITAI_VELOCITY:
@@ -137,7 +141,9 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
             std_msgs::Float32 haitai_vel_msg;
             struct haitai_vel *pHaitaiVel = (struct haitai_vel *)(p->data);
             haitai_vel_msg.data = pHaitaiVel->velocity;
-            spindle_vel_pub_.publish(haitai_vel_msg);
+            if (spindle_vel_pub_) {
+                spindle_vel_pub_.publish(haitai_vel_msg);
+            }
         }
         break;
     case PACK_TYPE_HEART_BEAT_RESPONSE:
@@ -181,70 +187,6 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
         break;
     }
 }
-void TianbotChasis::stacklightCallback(const tianbot_core::SignalLight::ConstPtr &msg)
-{
-    struct signal_status signal_ctrl;
-    signal_ctrl.red = msg->red;
-    signal_ctrl.yellow = msg->yellow;
-    signal_ctrl.green = msg->green;
-    signal_ctrl.buzzer = msg->buzzer;
-
-    std::vector<uint8_t> buf;
-    buildCmd(buf, PACK_TYPE_SIGNAL_CTRL, reinterpret_cast<uint8_t*>(&signal_ctrl), sizeof(signal_ctrl));
-    if (comm_inf_ && comm_inf_->send(&buf[0], buf.size()) != 0) {
-        delete comm_inf_;
-        comm_inf_ = NULL;
-        ROS_ERROR("communication failed, reopen the device");
-        heartbeat_timer_.stop();
-        communication_timer_.stop();
-        open();
-        communication_timer_.start();
-    }
-    heartbeat_timer_.stop();
-    heartbeat_timer_.start();
-}
-void TianbotChasis::liftactuatorCallback(const std_msgs::UInt8::ConstPtr &msg)
-{
-    struct actuator_status actuator;
-    actuator.state = msg->data;
-
-    std::vector<uint8_t> buf;
-    buildCmd(buf, PACK_TYPE_ACTUATOR_CTRL, reinterpret_cast<uint8_t*>(&actuator), sizeof(actuator));
-    if (comm_inf_ && comm_inf_->send(&buf[0], buf.size()) != 0) {
-        delete comm_inf_;
-        comm_inf_ = NULL;
-        ROS_ERROR("communication failed, reopen the device");
-        heartbeat_timer_.stop();
-        communication_timer_.stop();
-        open();
-        communication_timer_.start();
-    }
-    heartbeat_timer_.stop();
-    heartbeat_timer_.start();
-}
-void TianbotChasis::spindleCallback(const tianbot_core::HaitaiCtrl::ConstPtr &msg)
-{
-    struct HaitaiCtrl_t haitai_ctrl;
-    haitai_ctrl.position = msg->position;  // 目标位置 (rad)
-    haitai_ctrl.velocity = msg->velocity;  // 目标速度 (rad/s)
-    haitai_ctrl.torque = msg->torque;      // 直接力矩 (N·m)
-    haitai_ctrl.kp = msg->kp;              // 位置增益
-    haitai_ctrl.kd = msg->kd;              // 速度增益
-
-    std::vector<uint8_t> buf;
-    buildCmd(buf, PACK_TYPE_HAITAI_CTRL, reinterpret_cast<uint8_t*>(&haitai_ctrl), sizeof(haitai_ctrl));
-    if (comm_inf_ && comm_inf_->send(&buf[0], buf.size()) != 0) {
-        delete comm_inf_;
-        comm_inf_ = NULL;
-        ROS_ERROR("communication failed, reopen the device");
-        heartbeat_timer_.stop();
-        communication_timer_.stop();
-        open();
-        communication_timer_.start();
-    }
-    heartbeat_timer_.stop();
-    heartbeat_timer_.start();
-}
 
 TianbotChasis::TianbotChasis(ros::NodeHandle *nh)
     : TianbotCore(nh), publisher_init_done(false)
@@ -252,19 +194,11 @@ TianbotChasis::TianbotChasis(ros::NodeHandle *nh)
     nh_.param<std::string>("base_frame", base_frame_, DEFAULT_BASE_FRAME);
     nh_.param<std::string>("odom_frame", odom_frame_, DEFAULT_ODOM_FRAME);
     nh_.param<std::string>("imu_frame", imu_frame_, DEFAULT_IMU_FRAME);
-
     nh_.param<bool>("publish_tf", publish_tf_, DEFAULT_PUBLISH_TF);
-
     odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odom", 1);
     imu_pub_ = nh_.advertise<sensor_msgs::Imu>("imu", 1);
     uwb_pub_ = nh_.advertise<geometry_msgs::Pose2D>("uwb", 1);
     voltage_pub_ = nh_.advertise<std_msgs::Float32>("voltage", 1);
-    stack_light_pub_ = nh_.advertise<std_msgs::UInt8MultiArray>("stack_light_state", 1);  // 添加信号灯状态发布者
-    lift_actuator_pub_ = nh_.advertise<std_msgs::UInt8>("lift_actuator_state", 1);  // 添加推杆状态发布者
-    spindle_vel_pub_ = nh_.advertise<std_msgs::Float32>("spindle_state", 1);  // 添加海泰电机速度发布者
-    stack_light_sub_ = nh_.subscribe<tianbot_core::SignalLight>("stack_light_ctrl", 1, &TianbotChasis::stacklightCallback, this);  
-    lift_actuator_sub_ = nh_.subscribe<std_msgs::UInt8>("lift_actuator_ctrl", 1, &TianbotChasis::liftactuatorCallback, this);
-    spindle_sub_ = nh_.subscribe<tianbot_core::HaitaiCtrl>("spindle_ctrl", 1, &TianbotChasis::spindleCallback, this);
     publisher_init_done = true;
 
     odom_tf_.header.frame_id = odom_frame_;

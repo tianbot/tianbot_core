@@ -32,22 +32,17 @@ class TianbotChasis : public TianbotCore {
 public:
     TianbotChasis(ros::NodeHandle *nh);
 
+protected:
+    ros::Publisher stack_light_pub_;  // 信号灯状态发布者
+    ros::Publisher lift_actuator_pub_;  // 推杆状态发布者
+    ros::Publisher spindle_vel_pub_;  // 海泰电机速度发布者
+    
 private:
     ros::Publisher odom_pub_;
     ros::Publisher uwb_pub_;
     ros::Publisher imu_pub_;
     ros::Publisher voltage_pub_;
-    ros::Publisher stack_light_pub_;  // 信号灯状态发布者
-    ros::Publisher lift_actuator_pub_;  // 推杆状态发布者
-    ros::Publisher spindle_vel_pub_;  // 海泰电机速度发布者
-    ros::Subscriber stack_light_sub_;    // 信号灯控制订阅者
-    ros::Subscriber lift_actuator_sub_;  // 推杆控制订阅者
-    ros::Subscriber spindle_sub_;  // 海泰电机控制订阅者
     ros::Subscriber cmd_vel_sub_;
-    void stacklightCallback(const tianbot_core::SignalLight::ConstPtr &msg);  // 信号灯控制回调函数
-    void liftactuatorCallback(const std_msgs::UInt8::ConstPtr &msg);  // 推杆控制回调函数 
-    void spindleCallback(const tianbot_core::HaitaiCtrl::ConstPtr &msg);
-
     geometry_msgs::TransformStamped odom_tf_;
     tf::TransformBroadcaster tf_broadcaster_;
     bool publish_tf_;

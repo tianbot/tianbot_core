@@ -3,8 +3,8 @@
 <launch>
   <arg name="serial_port" default="/dev/ttyACM0" />
   <arg name="serial_baudrate" default="460800" />
-  <arg name="type" default="omni" />
-  <arg name="type_verify" default="true" />
+  <arg name="type" default="amp" />
+  <arg name="type_verify" default="false" />
   <arg name="publish_tf" default="true" />
   <node pkg="tianbot_core" type="tianbot_core" name="tianbot_core" output="screen">
     <param name="serial_port" type="string" value="$(arg serial_port)"/>
