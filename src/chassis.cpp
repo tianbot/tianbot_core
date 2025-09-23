@@ -108,9 +108,38 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
             voltage_pub_.publish(battery_msg);
         }
         break;
-
-
-
+    
+    case PACK_TYPE_SIGNAL_STATUS:
+        if (sizeof(struct signal_status) == p->len - 2)
+        {
+            std_msgs::UInt8MultiArray signal_msg;
+            struct signal_status *pSignal = (struct signal_status *)(p->data);
+            signal_msg.data.push_back(pSignal->red);
+            signal_msg.data.push_back(pSignal->yellow);
+            signal_msg.data.push_back(pSignal->green);
+            signal_msg.data.push_back(pSignal->buzzer);
+            signal_light_pub_.publish(signal_msg);
+        }
+        break;
+    
+    case PACK_TYPE_ACTUATOR_STATUS:
+        if (sizeof(struct actuator_status) == p->len - 2)
+        {
+            std_msgs::UInt8 actuator_msg;
+            struct actuator_status *pActuator = (struct actuator_status *)(p->data);
+            actuator_msg.data = pActuator->state;
+            actuator_pub_.publish(actuator_msg);
+        }
+        break;
+    case PACK_TYPE_HAITAI_VELOCITY:
+        if (sizeof(struct haitai_vel) == p->len - 2)
+        {
+            std_msgs::Float32 haitai_vel_msg;
+            struct haitai_vel *pHaitaiVel = (struct haitai_vel *)(p->data);
+            haitai_vel_msg.data = pHaitaiVel->velocity;
+            haitai_vel_pub_.publish(haitai_vel_msg);
+        }
+        break;
     case PACK_TYPE_HEART_BEAT_RESPONSE:
         break;
 
@@ -152,6 +181,70 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
         break;
     }
 }
+void TianbotChasis::signalLightCallback(const tianbot_core::SignalLight::ConstPtr &msg)
+{
+    struct signal_status signal_ctrl;
+    signal_ctrl.red = msg->red;
+    signal_ctrl.yellow = msg->yellow;
+    signal_ctrl.green = msg->green;
+    signal_ctrl.buzzer = msg->buzzer;
+
+    std::vector<uint8_t> buf;
+    buildCmd(buf, PACK_TYPE_SIGNAL_CTRL, reinterpret_cast<uint8_t*>(&signal_ctrl), sizeof(signal_ctrl));
+    if (comm_inf_ && comm_inf_->send(&buf[0], buf.size()) != 0) {
+        delete comm_inf_;
+        comm_inf_ = NULL;
+        ROS_ERROR("communication failed, reopen the device");
+        heartbeat_timer_.stop();
+        communication_timer_.stop();
+        open();
+        communication_timer_.start();
+    }
+    heartbeat_timer_.stop();
+    heartbeat_timer_.start();
+}
+void TianbotChasis::actuatorCallback(const std_msgs::UInt8::ConstPtr &msg)
+{
+    struct actuator_status actuator;
+    actuator.state = msg->data;
+
+    std::vector<uint8_t> buf;
+    buildCmd(buf, PACK_TYPE_ACTUATOR_CTRL, reinterpret_cast<uint8_t*>(&actuator), sizeof(actuator));
+    if (comm_inf_ && comm_inf_->send(&buf[0], buf.size()) != 0) {
+        delete comm_inf_;
+        comm_inf_ = NULL;
+        ROS_ERROR("communication failed, reopen the device");
+        heartbeat_timer_.stop();
+        communication_timer_.stop();
+        open();
+        communication_timer_.start();
+    }
+    heartbeat_timer_.stop();
+    heartbeat_timer_.start();
+}
+void TianbotChasis::haitaiCtrlCallback(const tianbot_core::HaitaiCtrl::ConstPtr &msg)
+{
+    struct HaitaiCtrl_t haitai_ctrl;
+    haitai_ctrl.position = msg->position;  // 目标位置 (rad)
+    haitai_ctrl.velocity = msg->velocity;  // 目标速度 (rad/s)
+    haitai_ctrl.torque = msg->torque;      // 直接力矩 (N·m)
+    haitai_ctrl.kp = msg->kp;              // 位置增益
+    haitai_ctrl.kd = msg->kd;              // 速度增益
+
+    std::vector<uint8_t> buf;
+    buildCmd(buf, PACK_TYPE_HAITAI_CTRL, reinterpret_cast<uint8_t*>(&haitai_ctrl), sizeof(haitai_ctrl));
+    if (comm_inf_ && comm_inf_->send(&buf[0], buf.size()) != 0) {
+        delete comm_inf_;
+        comm_inf_ = NULL;
+        ROS_ERROR("communication failed, reopen the device");
+        heartbeat_timer_.stop();
+        communication_timer_.stop();
+        open();
+        communication_timer_.start();
+    }
+    heartbeat_timer_.stop();
+    heartbeat_timer_.start();
+}
 
 TianbotChasis::TianbotChasis(ros::NodeHandle *nh)
     : TianbotCore(nh), publisher_init_done(false)
@@ -166,6 +259,12 @@ TianbotChasis::TianbotChasis(ros::NodeHandle *nh)
     imu_pub_ = nh_.advertise<sensor_msgs::Imu>("imu", 1);
     uwb_pub_ = nh_.advertise<geometry_msgs::Pose2D>("uwb", 1);
     voltage_pub_ = nh_.advertise<std_msgs::Float32>("voltage", 1);
+    signal_light_pub_ = nh_.advertise<std_msgs::UInt8MultiArray>("signal_light", 1);  // 添加信号灯状态发布者
+    actuator_pub_ = nh_.advertise<std_msgs::UInt8>("actuator", 1);  // 添加推杆状态发布者
+    haitai_vel_pub_ = nh_.advertise<std_msgs::Float32>("haitai_vel", 1);  // 添加海泰电机速度发布者
+    signal_light_sub_ = nh_.subscribe<tianbot_core::SignalLight>("signal_light_ctrl", 1, &TianbotChasis::signalLightCallback, this);  
+    actuator_sub_ = nh_.subscribe<std_msgs::UInt8>("actuator_ctrl", 1, &TianbotChasis::actuatorCallback, this);
+    haitai_ctrl_sub_ = nh_.subscribe<tianbot_core::HaitaiCtrl>("haitai_ctrl", 1, &TianbotChasis::haitaiCtrlCallback, this);
     publisher_init_done = true;
 
     odom_tf_.header.frame_id = odom_frame_;

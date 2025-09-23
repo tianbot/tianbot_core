@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-  <arg name="serial_port" default="/dev/ttyUSB0" />
+  <arg name="serial_port" default="/dev/ttyACM0" />
   <arg name="serial_baudrate" default="460800" />
   <arg name="type" default="omni" />
   <arg name="type_verify" default="true" />

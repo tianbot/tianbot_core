@@ -57,7 +57,11 @@ find_package(catkin REQUIRED COMPONENTS
 #   Message1.msg
 #   Message2.msg
 # )
-
+add_message_files(
+  FILES
+  HaitaiCtrl.msg
+  SignalLight.msg
+)
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
@@ -74,6 +78,7 @@ add_service_files(
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
+  std_msgs
 #   geometry_msgs#   nav_msgs#   sensor_msgs#   std_msgs
 )
 
