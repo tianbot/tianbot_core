@@ -118,7 +118,7 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
             signal_msg.data.push_back(pSignal->yellow);
             signal_msg.data.push_back(pSignal->green);
             signal_msg.data.push_back(pSignal->buzzer);
-            signal_light_pub_.publish(signal_msg);
+            stack_light_pub_.publish(signal_msg);
         }
         break;
     
@@ -128,7 +128,7 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
             std_msgs::UInt8 actuator_msg;
             struct actuator_status *pActuator = (struct actuator_status *)(p->data);
             actuator_msg.data = pActuator->state;
-            actuator_pub_.publish(actuator_msg);
+            lift_actuator_pub_.publish(actuator_msg);
         }
         break;
     case PACK_TYPE_HAITAI_VELOCITY:
@@ -137,7 +137,7 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
             std_msgs::Float32 haitai_vel_msg;
             struct haitai_vel *pHaitaiVel = (struct haitai_vel *)(p->data);
             haitai_vel_msg.data = pHaitaiVel->velocity;
-            haitai_vel_pub_.publish(haitai_vel_msg);
+            spindle_vel_pub_.publish(haitai_vel_msg);
         }
         break;
     case PACK_TYPE_HEART_BEAT_RESPONSE:
@@ -181,7 +181,7 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
         break;
     }
 }
-void TianbotChasis::signalLightCallback(const tianbot_core::SignalLight::ConstPtr &msg)
+void TianbotChasis::stacklightCallback(const tianbot_core::SignalLight::ConstPtr &msg)
 {
     struct signal_status signal_ctrl;
     signal_ctrl.red = msg->red;
@@ -203,7 +203,7 @@ void TianbotChasis::signalLightCallback(const tianbot_core::SignalLight::ConstPt
     heartbeat_timer_.stop();
     heartbeat_timer_.start();
 }
-void TianbotChasis::actuatorCallback(const std_msgs::UInt8::ConstPtr &msg)
+void TianbotChasis::liftactuatorCallback(const std_msgs::UInt8::ConstPtr &msg)
 {
     struct actuator_status actuator;
     actuator.state = msg->data;
@@ -222,7 +222,7 @@ void TianbotChasis::actuatorCallback(const std_msgs::UInt8::ConstPtr &msg)
     heartbeat_timer_.stop();
     heartbeat_timer_.start();
 }
-void TianbotChasis::haitaiCtrlCallback(const tianbot_core::HaitaiCtrl::ConstPtr &msg)
+void TianbotChasis::spindleCallback(const tianbot_core::HaitaiCtrl::ConstPtr &msg)
 {
     struct HaitaiCtrl_t haitai_ctrl;
     haitai_ctrl.position = msg->position;  // 目标位置 (rad)
@@ -259,12 +259,12 @@ TianbotChasis::TianbotChasis(ros::NodeHandle *nh)
     imu_pub_ = nh_.advertise<sensor_msgs::Imu>("imu", 1);
     uwb_pub_ = nh_.advertise<geometry_msgs::Pose2D>("uwb", 1);
     voltage_pub_ = nh_.advertise<std_msgs::Float32>("voltage", 1);
-    signal_light_pub_ = nh_.advertise<std_msgs::UInt8MultiArray>("signal_light", 1);  // 添加信号灯状态发布者
-    actuator_pub_ = nh_.advertise<std_msgs::UInt8>("actuator", 1);  // 添加推杆状态发布者
-    haitai_vel_pub_ = nh_.advertise<std_msgs::Float32>("haitai_vel", 1);  // 添加海泰电机速度发布者
-    signal_light_sub_ = nh_.subscribe<tianbot_core::SignalLight>("signal_light_ctrl", 1, &TianbotChasis::signalLightCallback, this);  
-    actuator_sub_ = nh_.subscribe<std_msgs::UInt8>("actuator_ctrl", 1, &TianbotChasis::actuatorCallback, this);
-    haitai_ctrl_sub_ = nh_.subscribe<tianbot_core::HaitaiCtrl>("haitai_ctrl", 1, &TianbotChasis::haitaiCtrlCallback, this);
+    stack_light_pub_ = nh_.advertise<std_msgs::UInt8MultiArray>("stack_light_state", 1);  // 添加信号灯状态发布者
+    lift_actuator_pub_ = nh_.advertise<std_msgs::UInt8>("lift_actuator_state", 1);  // 添加推杆状态发布者
+    spindle_vel_pub_ = nh_.advertise<std_msgs::Float32>("spindle_state", 1);  // 添加海泰电机速度发布者
+    stack_light_sub_ = nh_.subscribe<tianbot_core::SignalLight>("stack_light_ctrl", 1, &TianbotChasis::stacklightCallback, this);  
+    lift_actuator_sub_ = nh_.subscribe<std_msgs::UInt8>("lift_actuator_ctrl", 1, &TianbotChasis::liftactuatorCallback, this);
+    spindle_sub_ = nh_.subscribe<tianbot_core::HaitaiCtrl>("spindle_ctrl", 1, &TianbotChasis::spindleCallback, this);
     publisher_init_done = true;
 
     odom_tf_.header.frame_id = odom_frame_;
