@@ -5,6 +5,7 @@
 #include "differential.h"
 #include "omni.h"
 #include "rover.h"
+#include "amp.h"
 #include "stdint.h"
 #include "string.h"
 
@@ -26,6 +27,10 @@ int main(int argc, char *argv[])
     if (type == "omni")
     {
         core = new TianbotOmni(&nh);
+    }
+    else if (type == "amp")  // 添加这一部分
+    {
+        core = new TianbotAmp(&nh);
     }
     else if (type == "ackermann")
     {

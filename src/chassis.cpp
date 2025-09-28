@@ -108,9 +108,44 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
             voltage_pub_.publish(battery_msg);
         }
         break;
-
-
-
+    
+    case PACK_TYPE_SIGNAL_STATUS:
+        if (sizeof(struct signal_status) == p->len - 2)
+        {
+            std_msgs::UInt8MultiArray signal_msg;
+            struct signal_status *pSignal = (struct signal_status *)(p->data);
+            signal_msg.data.push_back(pSignal->red);
+            signal_msg.data.push_back(pSignal->yellow);
+            signal_msg.data.push_back(pSignal->green);
+            signal_msg.data.push_back(pSignal->buzzer);
+            if (stack_light_pub_) {
+                stack_light_pub_.publish(signal_msg);
+            }
+        }
+        break;
+    
+    case PACK_TYPE_ACTUATOR_STATUS:
+        if (sizeof(struct actuator_status) == p->len - 2)
+        {
+            std_msgs::UInt8 actuator_msg;
+            struct actuator_status *pActuator = (struct actuator_status *)(p->data);
+            actuator_msg.data = pActuator->state;
+            if (lift_actuator_pub_) {
+                lift_actuator_pub_.publish(actuator_msg);
+            }
+        }
+        break;
+    case PACK_TYPE_HAITAI_VELOCITY:
+        if (sizeof(struct haitai_vel) == p->len - 2)
+        {
+            std_msgs::Float32 haitai_vel_msg;
+            struct haitai_vel *pHaitaiVel = (struct haitai_vel *)(p->data);
+            haitai_vel_msg.data = pHaitaiVel->velocity;
+            if (spindle_vel_pub_) {
+                spindle_vel_pub_.publish(haitai_vel_msg);
+            }
+        }
+        break;
     case PACK_TYPE_HEART_BEAT_RESPONSE:
         break;
 
@@ -159,9 +194,7 @@ TianbotChasis::TianbotChasis(ros::NodeHandle *nh)
     nh_.param<std::string>("base_frame", base_frame_, DEFAULT_BASE_FRAME);
     nh_.param<std::string>("odom_frame", odom_frame_, DEFAULT_ODOM_FRAME);
     nh_.param<std::string>("imu_frame", imu_frame_, DEFAULT_IMU_FRAME);
-
     nh_.param<bool>("publish_tf", publish_tf_, DEFAULT_PUBLISH_TF);
-
     odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odom", 1);
     imu_pub_ = nh_.advertise<sensor_msgs::Imu>("imu", 1);
     uwb_pub_ = nh_.advertise<geometry_msgs::Pose2D>("uwb", 1);
