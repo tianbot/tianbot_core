@@ -5,6 +5,7 @@ def generate_launch_description():
 
     ld = LaunchDescription()
 
+
     base_footprint_to_base_link = Node(package = "tf2_ros", 
                        executable = "static_transform_publisher",
                        name="base_footprint_to_base_link",
