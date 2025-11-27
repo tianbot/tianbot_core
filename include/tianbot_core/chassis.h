@@ -34,7 +34,7 @@ public:
 
 protected:
     ros::Publisher stack_light_pub_;  // 信号灯状态发布者
-    ros::Publisher lift_actuator_pub_;  // 推杆状态发布者
+    ros::Publisher lift_actuator_pub_;  // 提升装置发布者
     ros::Publisher spindle_vel_pub_;  // 海泰电机速度发布者
     
 private:

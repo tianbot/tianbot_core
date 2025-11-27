@@ -16,6 +16,8 @@ enum
     PACK_TYPE_SIGNAL_CTRL,
     PACK_TYPE_ACTUATOR_CTRL,
     PACK_TYPE_HAITAI_CTRL,  // 添加海泰电机控制包类型
+    PACK_TYPE_LINE_OPTO_CTRL, /* 上位机触发换行光耦控制（uint32_t pulse_ms） */
+    PACK_TYPE_EMM_V5_CTRL,  // 添加EmmV5电机控制包类型
     PACK_TYPE_SET_ROVER_MOTION_MODE,
     PACK_TYPE_DEBUG = 0x4000,
     PACK_TYPE_ODOM_RESPONSE = 0x8000,
@@ -28,8 +30,10 @@ enum
     PACK_TYPE_SIGNAL_STATUS,
     PACK_TYPE_ACTUATOR_STATUS,
     PACK_TYPE_HAITAI_VELOCITY,  // 添加海泰电机速度反馈包类型
+    PACK_TYPE_EMM_V5_VELOCITY,
 
 };
+
 
 struct vector3
 {
@@ -119,7 +123,10 @@ struct actuator_status
 {
     uint8_t state;
 };
-
+/* Command structure for line opto: pulse duration in milliseconds (uint32_t) */
+struct line_opto_cmd {
+    uint32_t pulse_ms;
+};
 struct protocol_pack
 {
     uint16_t head;
@@ -138,6 +145,18 @@ struct haitai_vel
 {
     float velocity;    // 当前速度 (rad/s)
 };
+// 定义EMMV5电机控制参数结构体
+struct EmmV5Ctrl_t{
+    float distance_mm;          // 距离（毫米）
+    uint16_t vel;               // 速度
+    uint8_t acc;                // 加速度
+};
+// 添加步进电机位置数据结构
+struct EmmV5_vel{
+    float position;          // 距离值（mm）
+};
+
+
 void buildCmd(vector<uint8_t> &buf, uint16_t cmd, uint8_t data[], uint8_t data_len);
 
 #endif
