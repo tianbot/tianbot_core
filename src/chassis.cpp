@@ -51,7 +51,7 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
         break;
 
     case PACK_TYPE_ODOM_V2_RESPONSE:
-        if (sizeof(struct odom) == p->len - 2)
+        if (sizeof(struct odom_v2) == p->len - 2)
         {
             nav_msgs::msg::Odometry odom_msg;
             struct odom_v2 *pOdom = (struct odom_v2 *)(p->data);
