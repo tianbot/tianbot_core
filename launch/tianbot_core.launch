@@ -3,7 +3,7 @@
 <launch>
   <arg name="serial_port" default="/dev/ttyACM0" />
   <arg name="serial_baudrate" default="460800" />
-  <arg name="type" default="amp" />
+  <arg name="type" default="ndi" />
   <arg name="type_verify" default="false" />
   <arg name="publish_tf" default="true" />
   <node pkg="tianbot_core" type="tianbot_core" name="tianbot_core" output="screen">

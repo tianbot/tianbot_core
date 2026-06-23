@@ -6,6 +6,7 @@
 #include "omni.h"
 #include "rover.h"
 #include "amp.h"
+#include "ndi.h"
 #include "stdint.h"
 #include "string.h"
 
@@ -28,9 +29,13 @@ int main(int argc, char *argv[])
     {
         core = new TianbotOmni(&nh);
     }
-    else if (type == "amp")  // 添加这一部分
+    else if (type == "amp")  
     {
         core = new TianbotAmp(&nh);
+    }
+    else if (type == "ndi")  
+    {
+        core = new TianbotNdi(&nh);
     }
     else if (type == "ackermann")
     {

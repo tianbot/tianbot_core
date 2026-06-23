@@ -146,6 +146,17 @@ void TianbotChasis::tianbotDataProc(unsigned char *buf, int len)
             }
         }
         break;
+    case PACK_TYPE_EMM_V5_VELOCITY:
+        if (sizeof(struct EmmV5_vel) == p->len - 2)
+        {
+            std_msgs::Float32 emm_v5_msg;
+            struct EmmV5_vel *pEmmVel = (struct EmmV5_vel *)(p->data);
+            emm_v5_msg.data = pEmmVel->position;
+            if (lift_actuator_pub_) {
+                lift_actuator_pub_.publish(emm_v5_msg);
+            }
+        }
+        break;
     case PACK_TYPE_HEART_BEAT_RESPONSE:
         break;
 
