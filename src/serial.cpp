@@ -112,6 +112,12 @@ bool Serial::config(int speed, int flow_ctrl, int databits, int stopbits,
         return false;
     }
 
+    // Binary frames must not inherit terminal input processing.
+    cfmakeraw(&options);
+#ifdef EXTPROC
+    options.c_lflag &= ~EXTPROC;
+#endif
+
     // 设置串口输入波特率和输出波特率 /i o 入和出
     for (i = 0; i < sizeof(speed_arr) / sizeof(int); i++)
     {
@@ -127,17 +133,18 @@ bool Serial::config(int speed, int flow_ctrl, int databits, int stopbits,
     // 修改控制模式，使得能够从串口中读取输入数据
     options.c_cflag |= CREAD;
 
-    // 设置数据流控制
+    // Select one flow-control mode without inheriting another.
+    options.c_cflag &= ~CRTSCTS;
+    options.c_iflag &= ~(IXON | IXOFF | IXANY);
     switch (flow_ctrl)
     {
     case 0: // 不使用流控制
-        options.c_cflag &= ~CRTSCTS;
         break;
     case 1: // 使用硬件流控制
         options.c_cflag |= CRTSCTS;
         break;
     case 2: // 使用软件流控制
-        options.c_cflag |= IXON | IXOFF | IXANY;
+        options.c_iflag |= IXON | IXOFF | IXANY;
         break;
     default:
         fprintf(stderr, "Unsupported flow ctrl\n");
@@ -204,12 +211,6 @@ bool Serial::config(int speed, int flow_ctrl, int databits, int stopbits,
         fprintf(stderr, "Unsupported stop bits\n");
         return false;
     }
-
-    // 修改输出模式，原始数据输出
-    options.c_oflag &= ~OPOST;
-
-    options.c_lflag |= ~(ICANON | ECHOE | ECHO | ISIG);
-    //(ICANON | ECHO | ECHOE);
 
     // 设置等待时间和最小接收字符
     options.c_cc[VTIME] = 1; /* 读取一个字符等待1*(1/10)s */
