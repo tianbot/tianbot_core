@@ -60,6 +60,16 @@ private:
     int running_;
     recv_cb recv_cb_;
     int fd_;
+
+    // ---- 通讯录音（可选旁听，默认关闭）----
+    // 环境变量 TIANBOT_TAP_DIR 指向一个目录时启用；不设则两路 fd 均为 -1，
+    // 每次收发只多一次判空。只写普通文件，不碰串口，收发路径一个字节都不变。
+    // 两个方向各自一个 fd、各自只被一个线程写，故不需要加锁。
+    int tap_to_fd_;    // 上位机 → 下位机，在 send() 里写
+    int tap_from_fd_;  // 下位机 → 上位机，在 serial_recv() 里写
+    long tap_written_to_;
+    long tap_written_from_;
+    long tap_limit_;   // 每个方向的字节上限，到顶后停止录音（继续转发）
 };
 
 #endif

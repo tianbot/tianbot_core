@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/file.h>
+#include <sys/stat.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -52,6 +53,33 @@
 #define DBG_LOG_WARNING(format, ...) \
     printf(format, ##__VA_ARGS__);   \
     printf("\n")
+
+// ---- 通讯录音：被动旁听，绝不改变转发路径 ----
+// 只写普通文件。写失败就把该方向关掉，收发一个字节都不受影响。
+static void tap_dump(int *fd, long *written, long limit,
+                     const uint8_t *data, int len)
+{
+    if (*fd < 0 || len <= 0)
+    {
+        return;
+    }
+    if (*written + (long)len > limit)
+    {
+        // 到上限：停止录音，继续转发
+        ::close(*fd);
+        *fd = -1;
+        return;
+    }
+    ssize_t n = ::write(*fd, data, (size_t)len);
+    if (n != (ssize_t)len)
+    {
+        // 磁盘满 / 权限问题：关掉录音，绝不影响通信
+        ::close(*fd);
+        *fd = -1;
+        return;
+    }
+    *written += (long)len;
+}
 
 void *Serial::serial_recv(void *p)
 {
@@ -89,6 +117,9 @@ void *Serial::serial_recv(void *p)
             {
                 continue;
             }
+            // 先录音再交给上层：记的是串口上的原始字节，与上层怎么解析无关
+            tap_dump(&pThis->tap_from_fd_, &pThis->tap_written_from_,
+                     pThis->tap_limit_, recvbuff, recvlen);
             pThis->recv_cb_(recvbuff, recvlen);
         }
     }
@@ -234,6 +265,13 @@ bool Serial::open(void *cfg, recv_cb cb)
     pthread_attr_t attr;
     struct serial_cfg *pcfg = (struct serial_cfg *)cfg;
     recv_thread_ = 0;
+    // 必须在任何 return 之前置位：否则提前失败时 tap_*_fd_ 是垃圾值，
+    // 后面「>= 0 就 close」会去关一个随机 fd。
+    tap_to_fd_ = -1;
+    tap_from_fd_ = -1;
+    tap_written_to_ = 0;
+    tap_written_from_ = 0;
+    tap_limit_ = 32L * 1024L * 1024L;
 
     // 句柄检查
     if (NULL == pcfg->device || NULL == cb)
@@ -263,6 +301,33 @@ bool Serial::open(void *cfg, recv_cb cb)
     {
         goto error;
     }
+
+    // ---- 通讯录音（可选）----
+    // 放在接收线程启动之前：线程一起来就会调 tap_dump，
+    // 那时 tap_from_fd_ 必须已是最终值。
+    {
+        const char *tap_dir = getenv("TIANBOT_TAP_DIR");
+        if (tap_dir != NULL && tap_dir[0] != '\0')
+        {
+            const char *mb = getenv("TIANBOT_TAP_MB");
+            if (mb != NULL && atoi(mb) > 0)
+            {
+                tap_limit_ = (long)atoi(mb) * 1024L * 1024L;
+            }
+            mkdir(tap_dir, 0777); // 已存在则忽略
+            char path[512];
+            // O_TRUNC：一次 bringup 就是一次采集。留着旧字节会让
+            // checks/protocol.py 的 head -c 取到上一次的数据。
+            snprintf(path, sizeof(path), "%s/to_mcu.raw", tap_dir);
+            tap_to_fd_ = ::open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+            snprintf(path, sizeof(path), "%s/from_mcu.raw", tap_dir);
+            tap_from_fd_ = ::open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+            // 打不开只是没有录音，绝不能让串口启动失败
+            DBG_LOG_TRACE("tap: to_mcu=%d from_mcu=%d dir=%s",
+                          tap_to_fd_, tap_from_fd_, tap_dir);
+        }
+    }
+
     running_ = 1;
 
     // 创建线程，接收数据
@@ -279,6 +344,16 @@ bool Serial::open(void *cfg, recv_cb cb)
 
 error:
     running_ = 0;
+    if (tap_to_fd_ >= 0)
+    {
+        ::close(tap_to_fd_);
+        tap_to_fd_ = -1;
+    }
+    if (tap_from_fd_ >= 0)
+    {
+        ::close(tap_from_fd_);
+        tap_from_fd_ = -1;
+    }
     if (fd_ > 0)
     {
         ::close(fd_);
@@ -299,6 +374,10 @@ int Serial::send(uint8_t *data, int len)
         return -1;
     }
 
+    // 录完整的一帧，而不是循环里已发出的片段：
+    // 一帧可能被 write 拆成几次，拼起来才是上位机真正想发的内容。
+    tap_dump(&tap_to_fd_, &tap_written_to_, tap_limit_, data, len);
+
     // 反复发送，直到全部发完
     while (sended_len != len)
     {
@@ -318,6 +397,16 @@ int Serial::send(uint8_t *data, int len)
 void Serial::close(void)
 {
     running_ = 0;
+    if (tap_to_fd_ >= 0)
+    {
+        ::close(tap_to_fd_);
+        tap_to_fd_ = -1;
+    }
+    if (tap_from_fd_ >= 0)
+    {
+        ::close(tap_from_fd_);
+        tap_from_fd_ = -1;
+    }
     if (fd_ > 0)
     {
         ::close(fd_);
